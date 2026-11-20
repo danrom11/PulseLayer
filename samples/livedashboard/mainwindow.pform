@@ -1,0 +1,283 @@
+{
+  "format": "pulseui-form",
+  "version": 1,
+  "title": "Live Dashboard",
+  "width": 780,
+  "height": 580,
+  "root": {
+    "type": "VStack",
+    "props": {
+      "spacing": 14,
+      "padding": 20
+    },
+    "children": [
+      {
+        "type": "HStack",
+        "props": {
+          "spacing": 12,
+          "align_items": 1
+        },
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "Live Dashboard",
+              "font_size": 22,
+              "weight": 3
+            }
+          },
+          {
+            "type": "Spacer"
+          },
+          {
+            "type": "Toggle",
+            "props": {
+              "label": "Live",
+              "checked": true,
+              "id": "live"
+            },
+            "bind": {
+              "checked": "live"
+            }
+          },
+          {
+            "type": "Select",
+            "props": {
+              "options": "Every 100 ms, Every 250 ms, Every second",
+              "index": 1,
+              "id": "rate",
+              "width": 150
+            },
+            "bind": {
+              "index": "rate"
+            }
+          }
+        ]
+      },
+      {
+        "type": "HStack",
+        "props": {
+          "spacing": 12
+        },
+        "children": [
+          {
+            "type": "Panel",
+            "props": {
+              "spacing": 4,
+              "padding": 14,
+              "flex": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "CPU",
+                  "id": "cpu_label"
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "0 %",
+                  "font_size": 28,
+                  "weight": 3,
+                  "id": "cpu_value"
+                },
+                "bind": {
+                  "text": "cpu_text",
+                  "color": "cpu_color"
+                }
+              },
+              {
+                "type": "ProgressBar",
+                "props": {
+                  "value": 0,
+                  "id": "cpu_bar"
+                },
+                "bind": {
+                  "value": "cpu_fraction"
+                }
+              }
+            ]
+          },
+          {
+            "type": "Panel",
+            "props": {
+              "spacing": 4,
+              "padding": 14,
+              "flex": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Memory",
+                  "id": "mem_label"
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "0 GB",
+                  "font_size": 28,
+                  "weight": 3,
+                  "id": "mem_value"
+                },
+                "bind": {
+                  "text": "mem_text"
+                }
+              },
+              {
+                "type": "ProgressBar",
+                "props": {
+                  "value": 0,
+                  "id": "mem_bar"
+                },
+                "bind": {
+                  "value": "mem_fraction"
+                }
+              }
+            ]
+          },
+          {
+            "type": "Panel",
+            "props": {
+              "spacing": 4,
+              "padding": 14,
+              "flex": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Network",
+                  "id": "net_label"
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "0 MB/s",
+                  "font_size": 28,
+                  "weight": 3,
+                  "id": "net_value"
+                },
+                "bind": {
+                  "text": "net_text"
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "peak 0 MB/s",
+                  "id": "net_peak"
+                },
+                "bind": {
+                  "text": "peak_text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Panel",
+        "props": {
+          "spacing": 10,
+          "padding": 14,
+          "flex": 1
+        },
+        "children": [
+          {
+            "type": "HStack",
+            "props": {
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "CPU load, last 60 samples",
+                  "weight": 2
+                }
+              },
+              {
+                "type": "Spacer"
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "",
+                  "id": "stats"
+                },
+                "bind": {
+                  "text": "stats_text"
+                }
+              }
+            ]
+          },
+          {
+            "type": "VStack",
+            "props": {
+              "flex": 1,
+              "id": "chart"
+            }
+          }
+        ]
+      },
+      {
+        "type": "HStack",
+        "props": {
+          "spacing": 10,
+          "align_items": 1
+        },
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "Alert above"
+            }
+          },
+          {
+            "type": "Slider",
+            "props": {
+              "value": 80,
+              "min": 10,
+              "max": 100,
+              "id": "threshold",
+              "flex": 1
+            },
+            "bind": {
+              "value": "threshold"
+            }
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "80 %",
+              "width": 44,
+              "text_align": 2,
+              "id": "threshold_value"
+            },
+            "bind": {
+              "text": "threshold_text"
+            }
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "",
+              "width": 220,
+              "text_align": 2,
+              "id": "alert"
+            },
+            "bind": {
+              "text": "alert_text",
+              "color": "alert_color"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

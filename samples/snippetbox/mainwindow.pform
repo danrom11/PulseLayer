@@ -1,0 +1,216 @@
+{
+  "format": "pulseui-form",
+  "version": 1,
+  "title": "Snippet Box",
+  "width": 820,
+  "height": 540,
+  "root": {
+    "type": "HStack",
+    "props": {
+      "spacing": 0,
+      "padding": 0
+    },
+    "children": [
+      {
+        "type": "VStack",
+        "props": {
+          "spacing": 10,
+          "padding": 14,
+          "width": 280,
+          "id": "sidebar"
+        },
+        "children": [
+          {
+            "type": "HStack",
+            "props": {
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Snippets",
+                  "font_size": 20,
+                  "weight": 3
+                }
+              },
+              {
+                "type": "Spacer"
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "label": "+ New",
+                  "kind": 1,
+                  "id": "new",
+                  "tooltip": "New snippet (Ctrl+N)"
+                },
+                "on": {
+                  "click": "add_snippet"
+                }
+              }
+            ]
+          },
+          {
+            "type": "TextField",
+            "props": {
+              "placeholder": "Search (Ctrl+F)",
+              "id": "search"
+            }
+          },
+          {
+            "type": "Scroll",
+            "props": {
+              "flex": 1
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "props": {
+                  "spacing": 2,
+                  "id": "list"
+                }
+              }
+            ]
+          },
+          {
+            "type": "HStack",
+            "props": {
+              "spacing": 4,
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "Button",
+                "props": {
+                  "label": "Preferences",
+                  "kind": 2,
+                  "id": "prefs",
+                  "tooltip": "Ctrl+P"
+                },
+                "on": {
+                  "click": "open_preferences"
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "label": "About",
+                  "kind": 2,
+                  "id": "about"
+                },
+                "on": {
+                  "click": "open_about"
+                }
+              },
+              {
+                "type": "Spacer"
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "0",
+                  "id": "count"
+                },
+                "bind": {
+                  "text": "count_text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Divider",
+        "props": {
+          "orientation": 1
+        }
+      },
+      {
+        "type": "VStack",
+        "props": {
+          "spacing": 10,
+          "padding": 16,
+          "flex": 1,
+          "id": "editor_pane"
+        },
+        "children": [
+          {
+            "type": "HStack",
+            "props": {
+              "spacing": 8,
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "TextField",
+                "props": {
+                  "placeholder": "Title",
+                  "id": "title",
+                  "flex": 1
+                },
+                "bind": {
+                  "text": "title"
+                }
+              },
+              {
+                "type": "Select",
+                "props": {
+                  "options": "C++, Python, JavaScript, Shell, Text",
+                  "index": 0,
+                  "id": "language",
+                  "width": 130
+                },
+                "bind": {
+                  "index": "language"
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "label": "Copy",
+                  "id": "copy",
+                  "tooltip": "Copy the code to the clipboard"
+                },
+                "on": {
+                  "click": "copy_code"
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "label": "Delete",
+                  "kind": 3,
+                  "id": "delete"
+                },
+                "on": {
+                  "click": "delete_snippet"
+                }
+              }
+            ]
+          },
+          {
+            "type": "VStack",
+            "props": {
+              "flex": 1,
+              "id": "code_host"
+            }
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "",
+              "id": "stats"
+            },
+            "bind": {
+              "text": "stats"
+            }
+          }
+        ],
+        "bind": {
+          "enabled": "has_selection"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,183 @@
+{
+  "format": "pulseui-form",
+  "version": 1,
+  "title": "Task Board",
+  "width": 560,
+  "height": 620,
+  "root": {
+    "type": "VStack",
+    "props": {
+      "spacing": 12,
+      "padding": 20
+    },
+    "children": [
+      {
+        "type": "HStack",
+        "props": {
+          "align_items": 1
+        },
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "Task Board",
+              "font_size": 22,
+              "weight": 3,
+              "id": "title"
+            }
+          },
+          {
+            "type": "Spacer"
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "0 open",
+              "id": "summary"
+            },
+            "bind": {
+              "text": "summary"
+            }
+          }
+        ]
+      },
+      {
+        "type": "HStack",
+        "props": {
+          "spacing": 8,
+          "align_items": 1
+        },
+        "children": [
+          {
+            "type": "TextField",
+            "props": {
+              "placeholder": "What needs to be done?",
+              "id": "draft",
+              "flex": 1
+            },
+            "bind": {
+              "text": "draft"
+            },
+            "on": {
+              "submit": "add_task"
+            }
+          },
+          {
+            "type": "Select",
+            "props": {
+              "options": "Low, Normal, High",
+              "index": 1,
+              "id": "priority",
+              "width": 110
+            },
+            "bind": {
+              "index": "priority"
+            }
+          },
+          {
+            "type": "Button",
+            "props": {
+              "label": "Add",
+              "kind": 1,
+              "id": "add",
+              "tooltip": "Add the task (Enter)"
+            },
+            "bind": {
+              "enabled": "can_add"
+            },
+            "on": {
+              "click": "add_task"
+            }
+          }
+        ]
+      },
+      {
+        "type": "HStack",
+        "props": {
+          "spacing": 8,
+          "align_items": 1
+        },
+        "children": [
+          {
+            "type": "TextField",
+            "props": {
+              "placeholder": "Search tasks (Ctrl+F)",
+              "id": "search",
+              "flex": 1
+            },
+            "bind": {
+              "text": "query"
+            }
+          },
+          {
+            "type": "HStack",
+            "props": {
+              "spacing": 0,
+              "id": "filters"
+            }
+          }
+        ]
+      },
+      {
+        "type": "Panel",
+        "props": {
+          "padding": 6,
+          "flex": 1,
+          "id": "board"
+        },
+        "children": [
+          {
+            "type": "Scroll",
+            "props": {
+              "flex": 1,
+              "id": "scroll"
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "props": {
+                  "spacing": 2,
+                  "id": "list"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "HStack",
+        "props": {
+          "spacing": 12,
+          "align_items": 1
+        },
+        "children": [
+          {
+            "type": "ProgressBar",
+            "props": {
+              "value": 0,
+              "id": "progress",
+              "flex": 1
+            },
+            "bind": {
+              "value": "progress"
+            }
+          },
+          {
+            "type": "Button",
+            "props": {
+              "label": "Clear completed",
+              "kind": 2,
+              "id": "clear"
+            },
+            "bind": {
+              "enabled": "has_completed"
+            },
+            "on": {
+              "click": "clear_completed"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

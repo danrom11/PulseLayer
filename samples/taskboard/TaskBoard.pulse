@@ -1,0 +1,17 @@
+{
+  "format": "pulselayer-project",
+  "version": 1,
+  "name": "TaskBoard",
+  "forms": [
+    {
+      "name": "mainwindow",
+      "class": "MainWindow"
+    }
+  ],
+  "files": [
+    "main.cpp",
+    "task.hpp",
+    "mainwindow.hpp",
+    "mainwindow.cpp"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "format": "pulselayer-project",
+  "version": 1,
+  "name": "SnippetBox",
+  "forms": [
+    {
+      "name": "mainwindow",
+      "class": "MainWindow"
+    },
+    {
+      "name": "preferences",
+      "class": "Preferences"
+    },
+    {
+      "name": "about",
+      "class": "About"
+    }
+  ],
+  "files": [
+    "main.cpp",
+    "store.hpp",
+    "store.cpp",
+    "mainwindow.hpp",
+    "mainwindow.cpp",
+    "preferences.hpp",
+    "preferences.cpp",
+    "about.hpp",
+    "about.cpp"
+  ]
+}

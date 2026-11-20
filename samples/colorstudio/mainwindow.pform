@@ -1,0 +1,359 @@
+{
+  "format": "pulseui-form",
+  "version": 1,
+  "title": "Color Studio",
+  "width": 700,
+  "height": 520,
+  "root": {
+    "type": "HStack",
+    "props": {
+      "spacing": 24,
+      "padding": 24
+    },
+    "children": [
+      {
+        "type": "VStack",
+        "props": {
+          "spacing": 12,
+          "width": 290
+        },
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "Color Studio",
+              "font_size": 22,
+              "weight": 3
+            }
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "Mix a color and check that text on it stays readable.",
+              "wrap": true,
+              "id": "intro"
+            }
+          },
+          {
+            "type": "HStack",
+            "props": {
+              "spacing": 10,
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Red",
+                  "width": 44
+                }
+              },
+              {
+                "type": "Slider",
+                "props": {
+                  "value": 61,
+                  "min": 0,
+                  "max": 255,
+                  "id": "red",
+                  "flex": 1
+                },
+                "bind": {
+                  "value": "red"
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "61",
+                  "width": 32,
+                  "text_align": 2,
+                  "id": "red_value"
+                },
+                "bind": {
+                  "text": "red_text"
+                }
+              }
+            ]
+          },
+          {
+            "type": "HStack",
+            "props": {
+              "spacing": 10,
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Green",
+                  "width": 44
+                }
+              },
+              {
+                "type": "Slider",
+                "props": {
+                  "value": 126,
+                  "min": 0,
+                  "max": 255,
+                  "id": "green",
+                  "flex": 1
+                },
+                "bind": {
+                  "value": "green"
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "126",
+                  "width": 32,
+                  "text_align": 2,
+                  "id": "green_value"
+                },
+                "bind": {
+                  "text": "green_text"
+                }
+              }
+            ]
+          },
+          {
+            "type": "HStack",
+            "props": {
+              "spacing": 10,
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Blue",
+                  "width": 44
+                }
+              },
+              {
+                "type": "Slider",
+                "props": {
+                  "value": 255,
+                  "min": 0,
+                  "max": 255,
+                  "id": "blue",
+                  "flex": 1
+                },
+                "bind": {
+                  "value": "blue"
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "255",
+                  "width": 32,
+                  "text_align": 2,
+                  "id": "blue_value"
+                },
+                "bind": {
+                  "text": "blue_text"
+                }
+              }
+            ]
+          },
+          {
+            "type": "HStack",
+            "props": {
+              "spacing": 8,
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Hex",
+                  "width": 44
+                }
+              },
+              {
+                "type": "TextField",
+                "props": {
+                  "text": "#3D7EFF",
+                  "id": "hex",
+                  "flex": 1,
+                  "tooltip": "Type a color and press Enter"
+                },
+                "bind": {
+                  "text": "hex_text"
+                },
+                "on": {
+                  "commit": "apply_hex"
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "label": "Copy",
+                  "id": "copy",
+                  "width": 76
+                },
+                "bind": {
+                  "label": "copy_label"
+                },
+                "on": {
+                  "click": "copy_hex"
+                }
+              }
+            ]
+          },
+          {
+            "type": "HStack",
+            "props": {
+              "spacing": 8
+            },
+            "children": [
+              {
+                "type": "Button",
+                "props": {
+                  "label": "Random",
+                  "id": "random",
+                  "flex": 1
+                },
+                "on": {
+                  "click": "randomize"
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "label": "Save to palette",
+                  "kind": 1,
+                  "id": "save",
+                  "flex": 1
+                },
+                "on": {
+                  "click": "save_color"
+                }
+              }
+            ]
+          },
+          {
+            "type": "Divider"
+          },
+          {
+            "type": "HStack",
+            "props": {
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Palette",
+                  "weight": 3
+                }
+              },
+              {
+                "type": "Spacer"
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "label": "Clear",
+                  "kind": 2,
+                  "id": "clear"
+                },
+                "bind": {
+                  "enabled": "has_palette"
+                },
+                "on": {
+                  "click": "clear_palette"
+                }
+              }
+            ]
+          },
+          {
+            "type": "VStack",
+            "props": {
+              "id": "palette",
+              "min_height": 40
+            }
+          }
+        ]
+      },
+      {
+        "type": "VStack",
+        "props": {
+          "spacing": 12,
+          "flex": 1
+        },
+        "children": [
+          {
+            "type": "VStack",
+            "props": {
+              "spacing": 8,
+              "padding": 24,
+              "radius": 14,
+              "flex": 1,
+              "background": "#3D7EFF",
+              "id": "preview"
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Aa",
+                  "font_size": 56,
+                  "weight": 4,
+                  "id": "sample"
+                },
+                "bind": {
+                  "color": "text_color"
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "The quick brown fox jumps over the lazy dog.",
+                  "font_size": 16,
+                  "wrap": true,
+                  "id": "sample_text"
+                },
+                "bind": {
+                  "color": "text_color"
+                }
+              },
+              {
+                "type": "Spacer"
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Contrast",
+                  "weight": 2,
+                  "id": "contrast"
+                },
+                "bind": {
+                  "text": "contrast_label",
+                  "color": "text_color"
+                }
+              }
+            ],
+            "bind": {
+              "background": "color"
+            }
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "Tints and shades - click one to pick it",
+              "id": "shades_title"
+            }
+          },
+          {
+            "type": "VStack",
+            "props": {
+              "id": "shades"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "format": "pulselayer-project",
+  "version": 1,
+  "name": "FocusTimer",
+  "forms": [
+    {
+      "name": "mainwindow",
+      "class": "MainWindow"
+    }
+  ],
+  "files": [
+    "main.cpp",
+    "mainwindow.hpp",
+    "mainwindow.cpp"
+  ]
+}

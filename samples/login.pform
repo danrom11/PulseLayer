@@ -1,0 +1,77 @@
+{
+  "format": "pulseui-form",
+  "version": 1,
+  "title": "Sign in",
+  "width": 380,
+  "height": 330,
+  "root": {
+    "type": "VStack",
+    "props": {
+      "spacing": 12,
+      "padding": 24
+    },
+    "children": [
+      {
+        "type": "Text",
+        "props": {
+          "text": "Welcome back",
+          "font_size": 22,
+          "weight": 3,
+          "id": "title"
+        }
+      },
+      {
+        "type": "Text",
+        "props": {
+          "text": "Sign in to continue",
+          "id": "subtitle"
+        }
+      },
+      {
+        "type": "TextField",
+        "props": {
+          "placeholder": "Email",
+          "id": "email"
+        }
+      },
+      {
+        "type": "TextField",
+        "props": {
+          "placeholder": "Password",
+          "id": "password"
+        }
+      },
+      {
+        "type": "Checkbox",
+        "props": {
+          "label": "Remember me",
+          "id": "remember"
+        }
+      },
+      {
+        "type": "Spacer"
+      },
+      {
+        "type": "HStack",
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "",
+              "id": "status",
+              "flex": 1
+            }
+          },
+          {
+            "type": "Button",
+            "props": {
+              "label": "Sign in",
+              "kind": 1,
+              "id": "ok"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

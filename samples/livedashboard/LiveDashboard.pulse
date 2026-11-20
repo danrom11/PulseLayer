@@ -1,0 +1,17 @@
+{
+  "format": "pulselayer-project",
+  "version": 1,
+  "name": "LiveDashboard",
+  "forms": [
+    {
+      "name": "mainwindow",
+      "class": "MainWindow"
+    }
+  ],
+  "files": [
+    "main.cpp",
+    "sensors.hpp",
+    "mainwindow.hpp",
+    "mainwindow.cpp"
+  ]
+}

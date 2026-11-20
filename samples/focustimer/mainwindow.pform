@@ -1,0 +1,187 @@
+{
+  "format": "pulseui-form",
+  "version": 1,
+  "title": "Focus Timer",
+  "width": 400,
+  "height": 600,
+  "root": {
+    "type": "VStack",
+    "props": {
+      "spacing": 16,
+      "padding": 24
+    },
+    "children": [
+      {
+        "type": "HStack",
+        "props": {
+          "align_items": 1
+        },
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "Focus Timer",
+              "font_size": 22,
+              "weight": 3
+            }
+          },
+          {
+            "type": "Spacer"
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "Session 1",
+              "id": "session"
+            },
+            "bind": {
+              "text": "session_text"
+            }
+          }
+        ]
+      },
+      {
+        "type": "Select",
+        "props": {
+          "options": "Focus · 25 min, Short break · 5 min, Long break · 15 min",
+          "index": 0,
+          "id": "mode"
+        },
+        "bind": {
+          "index": "phase"
+        }
+      },
+      {
+        "type": "Layer",
+        "props": {
+          "height": 250,
+          "id": "dial"
+        },
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "25:00",
+              "font_size": 54,
+              "weight": 0,
+              "text_align": 1,
+              "id": "clock"
+            },
+            "bind": {
+              "text": "clock",
+              "color": "clock_color"
+            }
+          }
+        ]
+      },
+      {
+        "type": "Text",
+        "props": {
+          "text": "Stay focused",
+          "text_align": 1,
+          "id": "hint"
+        },
+        "bind": {
+          "text": "hint"
+        }
+      },
+      {
+        "type": "ProgressBar",
+        "props": {
+          "value": 0,
+          "id": "progress"
+        },
+        "bind": {
+          "value": "elapsed"
+        }
+      },
+      {
+        "type": "HStack",
+        "props": {
+          "spacing": 8
+        },
+        "children": [
+          {
+            "type": "Button",
+            "props": {
+              "label": "Start",
+              "kind": 1,
+              "id": "start",
+              "flex": 1
+            },
+            "bind": {
+              "label": "start_label"
+            },
+            "on": {
+              "click": "toggle_running"
+            }
+          },
+          {
+            "type": "Button",
+            "props": {
+              "label": "Reset",
+              "id": "reset"
+            },
+            "on": {
+              "click": "reset"
+            }
+          },
+          {
+            "type": "Button",
+            "props": {
+              "label": "Skip",
+              "kind": 2,
+              "id": "skip",
+              "tooltip": "Go to the next phase"
+            },
+            "on": {
+              "click": "skip"
+            }
+          }
+        ]
+      },
+      {
+        "type": "Divider"
+      },
+      {
+        "type": "Toggle",
+        "props": {
+          "label": "Start the next phase automatically",
+          "id": "autostart"
+        },
+        "bind": {
+          "checked": "auto_start"
+        }
+      },
+      {
+        "type": "HStack",
+        "props": {
+          "align_items": 1
+        },
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "Focus sessions completed"
+            }
+          },
+          {
+            "type": "Spacer"
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "0",
+              "font_size": 16,
+              "weight": 3,
+              "id": "completed"
+            },
+            "bind": {
+              "text": "completed_text"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

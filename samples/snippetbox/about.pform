@@ -1,0 +1,68 @@
+{
+  "format": "pulseui-form",
+  "version": 1,
+  "title": "About Snippet Box",
+  "width": 360,
+  "height": 280,
+  "root": {
+    "type": "VStack",
+    "props": {
+      "spacing": 10,
+      "padding": 24,
+      "align_items": 1
+    },
+    "children": [
+      {
+        "type": "Text",
+        "props": {
+          "text": "◆",
+          "font_size": 40,
+          "id": "logo"
+        }
+      },
+      {
+        "type": "Text",
+        "props": {
+          "text": "Snippet Box",
+          "font_size": 20,
+          "weight": 3
+        }
+      },
+      {
+        "type": "Text",
+        "props": {
+          "text": "A Pulse Layer sample: three forms that share one reactive store.",
+          "wrap": true,
+          "text_align": 1,
+          "id": "blurb"
+        }
+      },
+      {
+        "type": "Text",
+        "props": {
+          "text": "",
+          "id": "stats",
+          "text_align": 1
+        },
+        "bind": {
+          "text": "stats"
+        }
+      },
+      {
+        "type": "Spacer"
+      },
+      {
+        "type": "Button",
+        "props": {
+          "label": "Close",
+          "kind": 1,
+          "id": "close",
+          "width": 100
+        },
+        "on": {
+          "click": "close"
+        }
+      }
+    ]
+  }
+}
