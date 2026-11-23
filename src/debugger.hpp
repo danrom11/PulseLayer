@@ -90,6 +90,13 @@ namespace debug_parse {
 struct Mi {
   std::string str;
   std::vector<std::pair<std::string, Mi>> items; // tuple / list entries (key empty for plain list values)
+  // defined where Mi is complete: libstdc++ checks the element type of `items` here (Clang rejects it)
+  Mi();
+  Mi(const Mi&);
+  Mi(Mi&&) noexcept;
+  Mi& operator=(const Mi&);
+  Mi& operator=(Mi&&) noexcept;
+  ~Mi();
   const Mi* get(const std::string& key) const;
   std::string s(const std::string& key) const { const Mi* m = get(key); return m ? m->str : std::string(); }
 };

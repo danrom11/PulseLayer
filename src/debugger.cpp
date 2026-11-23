@@ -77,6 +77,13 @@ void Debugger::send_raw(const std::string& text) {
 // ═════════════════════════════════════════════════════════════════════════════
 namespace debug_parse {
 
+Mi::Mi() = default;
+Mi::Mi(const Mi&) = default;
+Mi::Mi(Mi&&) noexcept = default;
+Mi& Mi::operator=(const Mi&) = default;
+Mi& Mi::operator=(Mi&&) noexcept = default;
+Mi::~Mi() = default;
+
 const Mi* Mi::get(const std::string& key) const {
   for (auto& [k, v] : items)
     if (k == key) return &v;

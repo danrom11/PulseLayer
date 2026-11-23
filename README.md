@@ -6,7 +6,7 @@
 
 A visual studio for [PulseUI](https://github.com/danrom11/PulseUI) apps — built entirely with PulseUI itself.
 
-`C++20` · `Windows` · `macOS` · `English · Русский · Deutsch · Français`
+`C++20` · `Windows` · `macOS` · `Linux` · `English · Русский · Deutsch · Français`
 
 </div>
 
@@ -46,7 +46,7 @@ a reactive model. Nothing is refreshed by hand.
 | 🔗 **Binding suggestions** | The binding fields list the members of the form's class with their types (and `item.<field>` inside list rows). |
 | 📋 **Lists and components** | Draw a list row and bind it to a `std::vector`; reuse forms inside forms; the project's own view classes appear in the palette. |
 | 🖼 **Preview board** | The form in dark and light theme, other sizes and with pseudo-translated long texts, side by side. |
-| 🐞 **Debugger** | Breakpoints, stepping, call stack and locals through GDB (MinGW), CDB (MSVC) or LLDB (macOS). |
+| 🐞 **Debugger** | Breakpoints, stepping, call stack and locals through GDB (MinGW, GCC on Linux), CDB (MSVC) or LLDB (macOS). |
 | 📦 **Release** | One click: an optimized, self-contained `.exe` with the DLLs it needs, or a signed `.app` and `.dmg`. |
 
 ## Quick start
@@ -245,7 +245,8 @@ and **Run** (F5, Ctrl+R) follow it:
   to set breakpoints; when the program stops, the line is highlighted, Run becomes **Continue**, step buttons appear
   next to it (step over F10, step into F11, step out Shift+F11), and the **Debug** tab shows the call stack (click a
   frame to go there) and the local variables. **Stop** (Shift+F5) ends the session. The debugger fits the kit: GDB
-  for MinGW/GCC, CDB (from the Windows SDK "Debugging Tools") for MSVC, `lldb-dap` on macOS; without one the program
+  for MinGW/GCC and Linux kits, CDB (from the Windows SDK "Debugging Tools") for MSVC, `lldb-dap` on macOS (and on
+  Linux without GDB); without one the program
   simply runs. Ctrl+Shift+R runs a Debug build without the debugger.
 - **Release:** Build compiles the project optimized in `.pulselayer-build/build-release/` and packages it into
   `release/` next to the project file; Run does the same and starts the packaged program.
@@ -254,6 +255,7 @@ and **Run** (F5, Ctrl+R) follow it:
   - macOS: `<Project>.app`, signed with the identity from ⚙ Settings → Kits (ad hoc when empty), and a `.dmg`.
     With Homebrew LLVM, its `libc++` is linked (the system one lacks symbols that clang 18+ headers use) and copied
     into `Contents/Frameworks`.
+  - Linux: the `<Project>` executable. It uses the system's X11, Cairo and Pango libraries, which desktops have.
 
 **Lists in forms.** Add a **ForEach** from the palette: it comes with a row (a checkbox and a text) shown
 with dimmed copies below. Edit the row like any other views, bind **items** to a `pulse::property<std::vector<T>>`
@@ -273,6 +275,7 @@ up to date while you edit.
 - Windows: MSVC through `vswhere` (`cl`, `link`, `vcvars64`), Clang from Visual Studio or LLVM,
   and MinGW from `PATH`, MSYS2 and other common install locations.
 - macOS: Apple Clang through `xcrun`, and GCC/LLVM from Homebrew.
+- Linux: `g++`, `clang++` and their versioned names (`g++-13`, `clang++-18`) on `PATH` and in `/usr/bin`.
 - CMake and Ninja are found on `PATH` or next to the compilers.
 
 Choose a default kit in the settings or in the code toolbar. You can also point the builder to a different
@@ -286,6 +289,7 @@ instant and needs no restart. Your choice is saved in the user settings:
 
 - Windows: `%APPDATA%\PulseLayer\settings.json`
 - macOS: `~/Library/Application Support/PulseLayer/settings.json`
+- Linux: `$XDG_CONFIG_HOME/PulseLayer/settings.json` (`~/.config/PulseLayer/settings.json`)
 
 To force a language for one session, run `PulseLayer --lang de`.
 
@@ -326,7 +330,15 @@ On macOS, `Ctrl` means `⌘ Cmd`.
 ## Building Pulse Layer
 
 **Requirements:** CMake 3.21+ and a C++20 compiler: Visual Studio 2022 or MinGW GCC 11+ on Windows,
-Xcode 15+ on macOS. Git is not needed for the dependencies.
+Xcode 15+ on macOS, GCC 11+ or Clang 14+ on Linux. Git is not needed for the dependencies.
+
+On Linux, install the PulseUI build dependencies first (Debian/Ubuntu:
+`sudo apt install build-essential cmake pkg-config libx11-dev libxcursor-dev libxkbcommon-dev libcairo2-dev libpango1.0-dev libgdk-pixbuf-2.0-dev`;
+`ninja-build`, `gdb` and `clang-format` are useful for the projects you build). The app runs on X11 and on
+Wayland desktops through XWayland (PulseUI 0.5.0 or newer is needed for Linux). Use `g++`, or a Clang at least
+as new as the GCC whose C++ library it picks up: an older Clang fails inside the standard headers (for example
+Clang 16 with GCC 16) - configure with `-DCMAKE_CXX_COMPILER=g++` in a fresh build folder. The same applies to the
+kit you choose in ⚙ Settings → Kits for your own projects.
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -345,7 +357,7 @@ Pulse Layer's own builder also uses this PulseUI copy to build your programs.
 |---|---|---|
 | `PULSELAYER_FETCH_DEPS` | `ON`, or `OFF` when `../Pulse` and `../PulseUI` exist | Download dependencies instead of using sibling checkouts |
 | `PULSELAYER_PULSE_REF` | `0.2.1` | Tag, branch or commit of Pulse to download |
-| `PULSELAYER_PULSEUI_REF` | `0.4.1` | Tag, branch or commit of PulseUI to download |
+| `PULSELAYER_PULSEUI_REF` | `0.5.0` | Tag, branch or commit of PulseUI to download |
 | `PULSELAYER_DEPS_DIR` | `external/` | Where downloads are unpacked (one subfolder per version pair) |
 
 Working on all three projects at once? Put them side by side (`Pulse/`, `PulseUI/`, `PulseLayer/`). Your local
@@ -369,6 +381,18 @@ The whole application is derived from a small reactive model. The document's `re
 - Translations are streams, so changing the language simply emits new text.
 
 Change the model, and the interface follows. That is the idea behind PulseUI, and Pulse Layer is built the same way.
+
+## Changelog
+
+### 0.2.2
+- **Linux.** Pulse Layer builds and runs on Linux (X11, and Wayland desktops through XWayland) with PulseUI 0.5.0:
+  GCC and Clang kits are detected (including versioned names such as `g++-13`, `clang++-18`), projects build with
+  CMake (Ninja or Makefiles), run with their output in Application output, debug with GDB (or `lldb-dap`,
+  including versioned `lldb-dap-NN`), and Release packages the executable. Settings are stored in
+  `~/.config/PulseLayer/settings.json`.
+- Builds with Clang and GNU libstdc++ (the debugger's GDB/MI parser no longer needs a complete type inside its
+  own definition).
+- PulseUI 0.5.0 is downloaded by default.
 
 ## License
 

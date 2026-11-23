@@ -458,6 +458,11 @@ DebuggerTool find_debugger(const Kit& kit) {
   for (auto& p : on_path(std::string("gdb") + kExe)) gdb.push_back(p);
   std::vector<fs::path> dap{dir / (std::string("lldb-dap") + kExe), dir / (std::string("lldb-vscode") + kExe)};
   for (auto& p : on_path(std::string("lldb-dap") + kExe)) dap.push_back(p);
+#if !defined(_WIN32) && !defined(__APPLE__)
+  // Linux distributions install versioned names (lldb-dap-18): newest first
+  for (int v = 30; v >= 14; --v)
+    for (auto& p : on_path("lldb-dap-" + std::to_string(v))) dap.push_back(p);
+#endif
 #ifdef __APPLE__
   {
     std::string out;
