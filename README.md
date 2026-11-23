@@ -345,7 +345,7 @@ Pulse Layer's own builder also uses this PulseUI copy to build your programs.
 |---|---|---|
 | `PULSELAYER_FETCH_DEPS` | `ON`, or `OFF` when `../Pulse` and `../PulseUI` exist | Download dependencies instead of using sibling checkouts |
 | `PULSELAYER_PULSE_REF` | `0.2.1` | Tag, branch or commit of Pulse to download |
-| `PULSELAYER_PULSEUI_REF` | `0.4.0` | Tag, branch or commit of PulseUI to download |
+| `PULSELAYER_PULSEUI_REF` | `0.4.1` | Tag, branch or commit of PulseUI to download |
 | `PULSELAYER_DEPS_DIR` | `external/` | Where downloads are unpacked (one subfolder per version pair) |
 
 Working on all three projects at once? Put them side by side (`Pulse/`, `PulseUI/`, `PulseLayer/`). Your local
