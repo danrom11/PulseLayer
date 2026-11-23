@@ -1,0 +1,23 @@
+{
+  "format": "pulselayer-project",
+  "version": 1,
+  "name": "Planner",
+  "forms": [
+    {
+      "name": "mainwindow",
+      "class": "MainWindow"
+    },
+    {
+      "name": "statscard",
+      "class": "StatsCard"
+    }
+  ],
+  "files": [
+    "main.cpp",
+    "task.hpp",
+    "statscard.hpp",
+    "statscard.cpp",
+    "mainwindow.hpp",
+    "mainwindow.cpp"
+  ]
+}

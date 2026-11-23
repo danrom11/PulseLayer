@@ -1,0 +1,56 @@
+{
+  "format": "pulseui-form",
+  "version": 1,
+  "title": "Stats card",
+  "width": 240,
+  "height": 260,
+  "root": {
+    "type": "Panel",
+    "props": {
+      "spacing": 6,
+      "align_items": 3,
+      "id": "card"
+    },
+    "children": [
+      {
+        "type": "Canvas",
+        "props": {
+          "height": 118,
+          "id": "ring",
+          "tooltip": "Share of finished tasks"
+        },
+        "bind": {
+          "redraw_on": "shown"
+        },
+        "on": {
+          "draw": "draw_ring"
+        }
+      },
+      {
+        "type": "Text",
+        "props": {
+          "text": "All done",
+          "font_size": 16,
+          "weight": 3,
+          "text_align": 1,
+          "id": "headline"
+        },
+        "bind": {
+          "text": "headline"
+        }
+      },
+      {
+        "type": "Text",
+        "props": {
+          "text": "",
+          "wrap": true,
+          "text_align": 1,
+          "id": "detail"
+        },
+        "bind": {
+          "text": "detail"
+        }
+      }
+    ]
+  }
+}

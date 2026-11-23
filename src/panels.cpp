@@ -4,7 +4,9 @@
 #include <pulse/version.hpp>
 
 #include <cstdlib>
+#include <algorithm>
 #include <fstream>
+#include <regex>
 
 namespace layer {
 
@@ -23,11 +25,19 @@ Node section_title(Bind<std::string> s) {
 
 class PaletteItem : public ViewT<PaletteItem> {
 public:
-  PaletteItem(Designer& d, const meta::TypeInfo& t) : d_(&d), type_(t.name), glyph_(t.glyph) {
+  PaletteItem(Designer& d, const meta::TypeInfo& t) : d_(&d), type_(t.name), label_(t.name), glyph_(t.glyph) {
     hover_repaint_ = true;
     cursor_ = Cursor::Hand;
     id_ = "palette-" + type_;
     bind(Bind<std::string>(tr("palette.item.tip")), [](View& v, const std::string& t) { v.set_tooltip(t); });
+  }
+  // a project part: "Component:<Form>" or "Custom:<Class>|<header>"
+  PaletteItem(Designer& d, std::string spec, std::string label, std::string glyph, std::string tip)
+      : d_(&d), type_(std::move(spec)), label_(std::move(label)), glyph_(std::move(glyph)) {
+    hover_repaint_ = true;
+    cursor_ = Cursor::Hand;
+    id_ = "palette-" + type_;
+    tooltip_ = std::move(tip);
   }
   const char* type_name() const override { return "PaletteItem"; }
   Size measure_content(Size) override { return {120, 28}; }
@@ -39,7 +49,7 @@ public:
     else if (hovered_) p.fill_rect(r, t.control_hover, t.radius_small);
     p.fill_rect({r.x + 6, r.y + 4, 20, r.h - 8}, t.accent.with_alpha(0.18f), 4);
     p.text({r.x + 6, r.y, 20, r.h}, glyph_, t.font_small, t.accent, Align::Center);
-    p.text({r.x + 34, r.y, r.w - 38, r.h}, type_, t.font, t.text, Align::LeftCenter);
+    p.text({r.x + 34, r.y, r.w - 38, r.h}, label_, t.font, t.text, Align::LeftCenter);
   }
 
   bool on_event(InputEvent& e) override {
@@ -69,7 +79,7 @@ public:
 
 private:
   Designer* d_;
-  std::string type_, glyph_;
+  std::string type_, label_, glyph_;
   Point start_{};
   bool dragging_ = false;
 };
@@ -97,7 +107,26 @@ struct TreeRow {
 
 void flatten(View* v, int depth, std::vector<TreeRow>& out) {
   out.push_back({v, depth});
+  if (!Document::is_container(v)) return; // inner parts of a view are not designed separately
   for (auto& c : v->children()) flatten(c.get(), depth + 1, out);
+}
+
+// Palette entries of the project: the forms other than the edited one, and view
+// classes declared in its headers (class X : public pulseui::ViewT<X> ...).
+std::vector<std::string> project_parts(Designer& d) {
+  std::vector<std::string> out;
+  const int active = d.project.active_form.get();
+  for (std::size_t i = 0; i < d.project.forms.size(); ++i)
+    if (static_cast<int>(i) != active) out.push_back("Component:" + d.project.forms[i].cls);
+  static const std::regex view_class(
+      R"(class\s+(\w+)\s*(?:final\s*)?:\s*public\s+(?:pulseui::)?(?:ViewT\s*<\s*\w+|View\b|VStack\b|HStack\b|Panel\b|Canvas\b|Layer\b))");
+  for (auto& f : d.project.files) {
+    const std::string ext = f.name.substr(f.name.find_last_of('.') == std::string::npos ? f.name.size() : f.name.find_last_of('.'));
+    if (ext != ".hpp" && ext != ".h") continue;
+    for (std::sregex_iterator it(f.text.begin(), f.text.end(), view_class), end; it != end; ++it)
+      out.push_back("Custom:" + (*it)[1].str() + "|" + f.name);
+  }
+  return out;
 }
 
 // ── inspector ────────────────────────────────────────────────────────────────
@@ -198,6 +227,112 @@ Node editor_for(Designer& d, View* v, const meta::Property* p) {
   }
 }
 
+// The value type a binding expects, from the property's hint:
+// "pulse::property<std::string> (two-way)" -> "std::string", "double 0..1" -> "double".
+std::string hint_type(const std::string& hint) {
+  const auto lt = hint.find("property<");
+  if (lt != std::string::npos) {
+    const auto start = lt + 9;
+    int depth = 1;
+    for (std::size_t i = start; i < hint.size(); ++i) {
+      if (hint[i] == '<') ++depth;
+      else if (hint[i] == '>' && --depth == 0) return hint.substr(start, i - start);
+    }
+  }
+  if (hint.rfind("std::vector", 0) == 0) return "vector<";
+  return hint.substr(0, hint.find(' '));
+}
+
+// The element type of a container type: "property<std::vector<Todo>>" -> "Todo".
+std::string element_type(const std::string& type) {
+  const auto v = type.find("vector<");
+  if (v == std::string::npos) return {};
+  const auto start = v + 7;
+  int depth = 1;
+  for (std::size_t i = start; i < type.size(); ++i) {
+    if (type[i] == '<') ++depth;
+    else if (type[i] == '>' && --depth == 0) return trim(type.substr(start, i - start));
+  }
+  return {};
+}
+
+// Fields of a type, as the code analyzer sees them (for item.<field> bindings in list rows).
+std::vector<CompletionItem> fields_of(const std::string& type, const CompletionContext& ctx) {
+  if (type.empty()) return {};
+  const std::vector<std::string> lines{"void pulse_layer_probe() {", "    " + type + " probe_value;", "    probe_value.", "}"};
+  return complete_cpp(lines, 2, lines[2].size(), ctx).items;
+}
+
+// Members of the form's class for the binding field: what the code analyzer
+// finds after `this->` inside a method of the class. Properties get fields
+// (those of the expected type first), events get methods.
+std::vector<Suggestion> member_suggestions(Designer& d, bool methods, const std::string& typed, const meta::Property* p,
+                                           View* view = nullptr) {
+  const int fi = d.project.active_form.get();
+  if (fi < 0 || fi >= static_cast<int>(d.project.forms.size())) return {};
+  const FormEntry& form = d.project.forms[static_cast<std::size_t>(fi)];
+  CompletionContext ctx;
+  ctx.current_file = form.name + "_binding_probe.cpp";
+  for (auto& f : d.project.files) ctx.other_files.emplace_back(f.name, f.text);
+  for (auto& f : d.project.forms) ctx.form_classes.push_back(f.cls);
+  const std::vector<std::string> lines{"#include \"" + form.name + ".hpp\"", "void " + form.cls + "::pulse_layer_probe() {",
+                                       "    this->", "}"};
+  const CompletionResult res = complete_cpp(lines, 2, lines[2].size(), ctx);
+  const std::string want = p ? hint_type(p->bind_hint) : std::string();
+  auto lower = [](std::string s) {
+    for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return s;
+  };
+  std::string q = lower(trim(typed));
+  // the field already holds a member name: offer all of them (that one first)
+  std::string current;
+  for (const CompletionItem& it : res.items)
+    if (lower(it.label) == q) current = it.label;
+  if (!current.empty()) q.clear();
+  std::vector<Suggestion> typed_match, others;
+  for (const CompletionItem& it : res.items) {
+    if (it.kind != CompletionItem::Member && it.kind != CompletionItem::Variable && it.kind != CompletionItem::Function) continue;
+    if (it.label == form.cls || it.label == "ui_" || it.label == "window_" || it.label == "pulse_layer_probe") continue;
+    const bool is_method = !it.detail.empty() && it.detail[0] == '(';
+    if (is_method != methods) continue;
+    if (methods && (it.label == "show" || it.label == "window")) continue; // the form's own plumbing
+    const std::string l = lower(it.label);
+    if (!q.empty() && l.find(q) == std::string::npos) continue;
+    Suggestion s{methods ? it.label + "()" : it.label, it.detail, it.label};
+    const bool prefix = q.empty() || l.rfind(q, 0) == 0;
+    const bool type_ok = !want.empty() && it.detail.find(want) != std::string::npos;
+    if (it.label == current) typed_match.insert(typed_match.begin(), std::move(s));
+    else (prefix && (methods || want.empty() || type_ok) ? typed_match : others).push_back(std::move(s));
+  }
+  // inside a list row: the fields of the row's item ("item.title")
+  if (!methods && view) {
+    for (View* a = view->parent(); a; a = a->parent()) {
+      auto* list = dynamic_cast<ForEachTemplate*>(a);
+      if (!list || (p && p->name == "items" && a == view)) continue;
+      const std::string* items = list->annotation("bind.items");
+      if (!items) break;
+      std::string container_type;
+      for (const CompletionItem& it : res.items)
+        if (it.label == *items) container_type = it.detail;
+      std::vector<Suggestion> fields, other_fields;
+      for (const CompletionItem& f : fields_of(element_type(container_type), ctx)) {
+        if (!f.detail.empty() && f.detail[0] == '(') continue; // fields only
+        const std::string path = list->item_name + "." + f.label;
+        if (!q.empty() && lower(path).find(q) == std::string::npos && lower(f.label).find(q) == std::string::npos) continue;
+        // fields of the expected type first ("string" for a text)
+        const bool fits = want.empty() || f.detail.find(want) != std::string::npos ||
+                          (want == "std::string" && f.detail.find("string") != std::string::npos);
+        (fits ? fields : other_fields).push_back({path, f.detail, path});
+      }
+      fields.insert(fields.end(), other_fields.begin(), other_fields.end());
+      typed_match.insert(typed_match.begin(), fields.begin(), fields.end());
+      break;
+    }
+  }
+  typed_match.insert(typed_match.end(), others.begin(), others.end());
+  return typed_match;
+}
+
 // A bindable property: its normal editor, or - once linked - the member it is bound to.
 Node bindable_editor(Designer& d, View* v, const meta::Property* p) {
   Document& doc = d.doc;
@@ -223,6 +358,7 @@ Node bindable_editor(Designer& d, View* v, const meta::Property* p) {
                TextField(target)
                    .placeholder(tr("inspector.member"))
                    .tooltip(tr("inspector.bound.tip", p->bind_hint))
+                   .suggestions([&d, p, v](const std::string& t) { return member_suggestions(d, false, t, p, v); })
                    .on_commit([&doc, v, key](const std::string& s) { commit_binding(doc, v, key, s); })
                    .id("bind-" + p->name)
                    .flex(),
@@ -259,6 +395,7 @@ Node event_editor(Designer& d, View* v, const std::string& event) {
   return HStack{
       TextField(target)
           .placeholder(tr("inspector.method"))
+          .suggestions([&d](const std::string& t) { return member_suggestions(d, true, t, nullptr); })
           .on_commit([&doc, v, key](const std::string& s) { commit_binding(doc, v, key, s); })
           .id("event-" + event)
           .flex(),
@@ -432,6 +569,8 @@ Node toolbar(Designer& d) {
       Button(tr("tb.settings"), [&d] { d.cmd_settings(); }).flat().id("settings").tooltip(tr("tb.settings.tip")),
       Button(tr("tb.export"), [&d] { d.cmd_export(); }).id("export").tooltip(tr("tb.export.tip"))
           .visible(d.mode.map([](int m) { return m == 0; })),
+      Button(tr("tb.board"), [&d] { d.cmd_preview_board(); }).id("board").tooltip(tr("tb.board.tip"))
+          .visible(d.mode.map([](int m) { return m == 0; })),
       Button(tr("tb.preview"), [&d] { d.cmd_preview(); }).primary().tooltip(tr("tb.preview.tip"))
           .visible(d.mode.map([](int m) { return m == 0; })),
   }
@@ -444,13 +583,27 @@ Node toolbar(Designer& d) {
 Node palette(Designer& d) {
   VStack list;
   list.spacing(0);
-  std::string current;
-  for (auto& t : meta::types()) {
-    if (t.category != current) {
-      current = t.category;
-      list.add(section_title(tr("palette.cat." + current, {}, current)));
+  // one section per category, in the order the categories first appear
+  std::vector<std::string> categories;
+  for (auto& t : meta::types())
+    if (std::find(categories.begin(), categories.end(), t.category) == categories.end()) categories.push_back(t.category);
+  for (const std::string& cat : categories) {
+    list.add(section_title(tr("palette.cat." + cat, {}, cat)));
+    for (auto& t : meta::types())
+      if (t.category == cat) list.add(PaletteItem(d, t));
+    if (cat == "Project") {
+      // the other forms of the project (as components) and its own view classes
+      auto parts = std::make_shared<pulse::computed<std::vector<std::string>>>([&d] { return project_parts(d); },
+                                                                               d.project.revision, d.project.active_form, d.mode);
+      d.palette_parts = parts;
+      list.add(ForEach(*parts, [](const std::string& s) { return s; }, [&d](const std::string& spec) {
+                 const bool form = spec.rfind("Component:", 0) == 0;
+                 const std::string name = spec.substr(spec.find(':') + 1, spec.find('|') == std::string::npos ? std::string::npos
+                                                                                                         : spec.find('|') - spec.find(':') - 1);
+                 return Node(PaletteItem(d, spec, name, form ? "\xE2\x96\xA3" : "\xE2\x97\x87",
+                                         form ? i18n::text("palette.form.tip", name) : i18n::text("palette.view.tip", name)));
+               }).spacing(0));
     }
-    list.add(PaletteItem(d, t));
   }
   list.add(Text(tr("palette.tip")).font_size(11).dim().wrap().padding(Insets(12, 14)));
   return VStack{section_title(tr("panel.palette")), Scroll(std::move(list)).flex()}.spacing(0).background(surface());

@@ -1,0 +1,222 @@
+{
+  "format": "pulseui-form",
+  "version": 1,
+  "title": "Photo Board",
+  "width": 1040,
+  "height": 700,
+  "root": {
+    "type": "HStack",
+    "props": {
+      "spacing": 0,
+      "align_items": 3
+    },
+    "children": [
+      {
+        "type": "VStack",
+        "props": {
+          "spacing": 12,
+          "padding": 20,
+          "width": 250,
+          "id": "sidebar"
+        },
+        "children": [
+          {
+            "type": "HStack",
+            "props": {
+              "spacing": 10,
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "Icon",
+                "props": {
+                  "id": "logo",
+                  "width": 30,
+                  "height": 30
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Photo Board",
+                  "font_size": 20,
+                  "weight": 3
+                }
+              }
+            ]
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "Drop images from Explorer or Finder anywhere on the board. Drag a card out to copy it somewhere else.",
+              "wrap": true,
+              "id": "intro"
+            }
+          },
+          {
+            "type": "Divider"
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "Card size",
+              "weight": 3
+            }
+          },
+          {
+            "type": "Slider",
+            "props": {
+              "value": 210,
+              "min": 140,
+              "max": 320,
+              "id": "size"
+            },
+            "bind": {
+              "value": "card_size"
+            }
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "Board color",
+              "weight": 3
+            }
+          },
+          {
+            "type": "ColorPicker",
+            "props": {
+              "id": "board_picker"
+            },
+            "bind": {
+              "color": "board_color"
+            }
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "Sort by",
+              "weight": 3
+            }
+          },
+          {
+            "type": "Segmented",
+            "props": {
+              "options": "Added, Name, Color",
+              "index": 0,
+              "id": "sort"
+            },
+            "bind": {
+              "index": "sort"
+            }
+          },
+          {
+            "type": "Spacer"
+          },
+          {
+            "type": "Button",
+            "props": {
+              "label": "Add sample cards",
+              "id": "add_samples"
+            },
+            "on": {
+              "click": "add_samples"
+            }
+          },
+          {
+            "type": "Button",
+            "props": {
+              "label": "Clear board",
+              "kind": 3,
+              "id": "clear"
+            },
+            "bind": {
+              "enabled": "has_photos"
+            },
+            "on": {
+              "click": "clear_board"
+            }
+          }
+        ]
+      },
+      {
+        "type": "Divider",
+        "props": {
+          "orientation": 1
+        }
+      },
+      {
+        "type": "VStack",
+        "props": {
+          "spacing": 0,
+          "flex": 1
+        },
+        "children": [
+          {
+            "type": "HStack",
+            "props": {
+              "spacing": 8,
+              "padding": 14,
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "",
+                  "weight": 3,
+                  "font_size": 15,
+                  "id": "count"
+                },
+                "bind": {
+                  "text": "count_text"
+                }
+              },
+              {
+                "type": "Spacer"
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "label": "Open images...",
+                  "id": "open_btn"
+                },
+                "on": {
+                  "click": "open_images"
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "label": "",
+                  "kind": 2,
+                  "id": "theme_btn",
+                  "tooltip": "Light / dark theme (Ctrl+T)"
+                },
+                "on": {
+                  "click": "toggle_theme"
+                }
+              }
+            ]
+          },
+          {
+            "type": "Scroll",
+            "props": {
+              "flex": 1,
+              "id": "board_scroll"
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "props": {
+                  "spacing": 0,
+                  "padding": 20,
+                  "id": "board"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

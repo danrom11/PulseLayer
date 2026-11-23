@@ -42,6 +42,19 @@ std::string canon(const fs::path& p) {
   return (ec ? p : c).string();
 }
 
+[[maybe_unused]] std::string cxx_driver_path(fs::path p, std::string_view prefix) {
+  std::error_code ec;
+  for (int hops = 0; hops < 16 && fs::is_symlink(p, ec); ++hops) {
+    fs::path target = fs::read_symlink(p, ec);
+    if (ec) break;
+    if (target.is_relative()) target = p.parent_path() / target;
+    if (target.filename().string().rfind(prefix, 0) != 0) break; // e.g. clang++ -> clang
+    p = target;
+  }
+  auto parent = fs::weakly_canonical(p.parent_path(), ec);
+  return ec ? p.string() : (parent / p.filename()).string();
+}
+
 std::vector<fs::path> path_dirs() {
   std::vector<fs::path> out;
   std::stringstream ss(env("PATH"));
@@ -282,7 +295,10 @@ Toolchains detect_toolchains() {
       const bool gcc = n == "g++" || n.rfind("g++-", 0) == 0;
       const bool clang = n == "clang++" || n.rfind("clang++-", 0) == 0;
       if (!gcc && !clang) continue;
-      const std::string path = canon(e.path());
+      // Homebrew: clang++ -> clang -> clang-17. The driver mode comes from the
+      // file name, and clang-17 is the C driver (it links without libc++), so
+      // follow links only while the name still says clang++ / g++.
+      const std::string path = cxx_driver_path(e.path(), clang ? "clang++" : "g++");
       const std::string ver_line = first_line(query(path, "--version"));
       if (ver_line.find("Apple") != std::string::npos) continue; // = Apple Clang above
       Kit k;
@@ -294,6 +310,13 @@ Toolchains detect_toolchains() {
       if (k.version.empty()) continue;
       k.target = first_line(query(path, "-dumpmachine"));
       k.linker = "ld";
+#ifdef __APPLE__
+      if (clang) {
+        std::error_code lec;
+        const fs::path prefix = fs::weakly_canonical(fs::path(path).parent_path().parent_path(), lec);
+        if (!lec && fs::exists(prefix / "lib" / "c++" / "libc++.1.dylib", lec)) k.libcxx_dir = (prefix / "lib" / "c++").string();
+      }
+#endif
       k.name = std::string(clang ? "Clang " : "GCC ") + k.version + " — " + path;
       add_kit(tc, seen, k);
     }
@@ -341,6 +364,131 @@ std::map<std::string, std::string> kit_environment(const Kit& kit, bool& replace
 #endif
   if (!kit.bin_dir.empty()) out["PATH"] = kit.bin_dir + kPathSep + env("PATH");
   return out;
+}
+
+} // namespace layer
+
+namespace layer {
+
+std::string find_clang_format(const Toolchains& tc) {
+  const std::string exe = std::string("clang-format") + kExe;
+  std::vector<fs::path> candidates;
+  for (auto& d : path_dirs()) candidates.push_back(d / exe);
+  for (auto& k : tc.kits) {
+    const fs::path cxx(k.cxx);
+    candidates.push_back(cxx.parent_path() / exe); // LLVM / Homebrew clang kits
+    if (!k.env_script.empty()) {                    // Visual Studio: VC/Auxiliary/Build/vcvars64.bat -> VC/Tools/Llvm
+      const fs::path vc = fs::path(k.env_script).parent_path().parent_path().parent_path();
+      candidates.push_back(vc / "Tools" / "Llvm" / "x64" / "bin" / exe);
+      candidates.push_back(vc / "Tools" / "Llvm" / "bin" / exe);
+    }
+    // Qt: <Qt>/Tools/mingw*/bin/g++ -> <Qt>/Tools/QtCreator/bin/clang/bin
+    for (fs::path p = cxx.parent_path(); !p.empty() && p != p.parent_path(); p = p.parent_path())
+      if (p.filename() == "Tools") {
+        candidates.push_back(p / "QtCreator" / "bin" / "clang" / "bin" / exe);
+        break;
+      }
+  }
+#ifdef _WIN32
+  for (const char* var : {"ProgramFiles", "ProgramW6432", "ProgramFiles(x86)"})
+    if (!env(var).empty()) candidates.push_back(fs::path(env(var)) / "LLVM" / "bin" / exe);
+#else
+  for (const char* d : {"/opt/homebrew/bin", "/usr/local/bin", "/opt/homebrew/opt/llvm/bin", "/usr/local/opt/llvm/bin",
+                        "/usr/bin"})
+    candidates.push_back(fs::path(d) / exe);
+#endif
+  for (auto& c : candidates)
+    if (file_exists(c)) return canon(c);
+  return {};
+}
+
+} // namespace layer
+
+// ── debuggers ────────────────────────────────────────────────────────────────
+#include "debugger.hpp"
+
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
+namespace layer {
+
+namespace {
+
+// lldb-dap may be installed but unusable (a missing Python DLL): try it.
+bool lldb_dap_works(const std::string& path) {
+  std::string out;
+  return Process::run(Process::quote(path) + " --help", out, 4000) == 0;
+}
+
+std::vector<fs::path> windows_kits_debuggers() {
+  std::vector<fs::path> out;
+#ifdef _WIN32
+  wchar_t buf[MAX_PATH] = {};
+  DWORD size = sizeof buf;
+  if (RegGetValueW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows Kits\\Installed Roots", L"KitsRoot10",
+                   RRF_RT_REG_SZ | RRF_SUBKEY_WOW6432KEY, nullptr, buf, &size) == ERROR_SUCCESS)
+    out.push_back(fs::path(buf) / "Debuggers" / "x64" / "cdb.exe");
+  for (const char* var : {"ProgramFiles(x86)", "ProgramFiles"})
+    if (!env(var).empty()) out.push_back(fs::path(env(var)) / "Windows Kits" / "10" / "Debuggers" / "x64" / "cdb.exe");
+#endif
+  return out;
+}
+
+} // namespace
+
+DebuggerTool find_debugger(const Kit& kit) {
+  const fs::path dir = fs::path(kit.cxx).parent_path();
+  auto first = [](const std::vector<fs::path>& c) -> std::string {
+    for (auto& p : c)
+      if (file_exists(p)) return canon(p);
+    return {};
+  };
+  auto on_path = [](const std::string& exe) {
+    std::vector<fs::path> c;
+    for (auto& d : path_dirs()) c.push_back(d / exe);
+    return c;
+  };
+  std::vector<fs::path> gdb{dir / (std::string("gdb") + kExe)};
+  if (!kit.bin_dir.empty()) gdb.push_back(fs::path(kit.bin_dir) / (std::string("gdb") + kExe));
+  for (auto& p : on_path(std::string("gdb") + kExe)) gdb.push_back(p);
+  std::vector<fs::path> dap{dir / (std::string("lldb-dap") + kExe), dir / (std::string("lldb-vscode") + kExe)};
+  for (auto& p : on_path(std::string("lldb-dap") + kExe)) dap.push_back(p);
+#ifdef __APPLE__
+  {
+    std::string out;
+    if (Process::run("xcrun -f lldb-dap", out, 5000) == 0 && !trim(out).empty()) dap.insert(dap.begin(), trim(out));
+  }
+#endif
+  auto try_dap = [&]() -> DebuggerTool {
+    const std::string p = first(dap);
+    if (!p.empty() && lldb_dap_works(p)) return {DebuggerTool::Kind::LldbDap, p};
+    return {};
+  };
+  switch (kit.kind) {
+    case Kit::Kind::MSVC:
+    case Kit::Kind::ClangMSVC: {
+      // PDB debug info: the Windows SDK debugger (or lldb)
+      if (auto p = first(windows_kits_debuggers()); !p.empty()) return {DebuggerTool::Kind::Cdb, p};
+      if (auto p = first(on_path("cdb.exe")); !p.empty()) return {DebuggerTool::Kind::Cdb, p};
+      return try_dap();
+    }
+    case Kit::Kind::AppleClang:
+      return try_dap();
+    default: {
+      // DWARF: gdb (MinGW, GCC), else lldb
+#ifdef _WIN32
+      if (kit.kind == Kit::Kind::Clang && kit.target.find("msvc") != std::string::npos)
+        if (auto p = first(windows_kits_debuggers()); !p.empty()) return {DebuggerTool::Kind::Cdb, p};
+#endif
+      if (auto p = first(gdb); !p.empty()) return {DebuggerTool::Kind::Gdb, p};
+      return try_dap();
+    }
+  }
 }
 
 } // namespace layer

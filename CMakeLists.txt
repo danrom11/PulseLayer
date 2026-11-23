@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(PulseLayer VERSION 0.1.0 LANGUAGES CXX)
+project(PulseLayer VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,7 +28,7 @@ endif()
 # ------------------------------------------------------------------
 set(PULSELAYER_PULSE_REF   "0.2.1" CACHE STRING
     "Pulse version to download: tag, branch or commit")
-set(PULSELAYER_PULSEUI_REF "0.3.0" CACHE STRING
+set(PULSELAYER_PULSEUI_REF "0.4.0" CACHE STRING
     "PulseUI version to download: tag, branch or commit")
 set(PULSELAYER_DEPS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external" CACHE PATH
     "Where downloaded dependencies are unpacked (one subfolder per version pair)")
@@ -110,6 +110,11 @@ pulseui_add_app(PulseLayer
   src/project.cpp
   src/project_view.cpp
   src/cpp_complete.cpp
+  src/code_tools.cpp
+  src/preview_board.cpp
+  src/debugger.cpp
+  src/debug_view.cpp
+  src/release.cpp
 )
 target_include_directories(PulseLayer PRIVATE src)
 get_filename_component(_pulseui_abs "${PULSELAYER_PULSEUI_DIR}" ABSOLUTE)

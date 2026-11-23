@@ -1,0 +1,468 @@
+{
+  "format": "pulseui-form",
+  "version": 1,
+  "title": "System Monitor",
+  "width": 900,
+  "height": 640,
+  "root": {
+    "type": "VStack",
+    "props": {
+      "spacing": 12,
+      "padding": 16
+    },
+    "children": [
+      {
+        "type": "HStack",
+        "props": {
+          "spacing": 12,
+          "align_items": 1
+        },
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "System Monitor",
+              "font_size": 22,
+              "weight": 4,
+              "id": "heading"
+            }
+          },
+          {
+            "type": "Spacer"
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "",
+              "font_size": 12,
+              "color": "#8B93A1",
+              "id": "status"
+            },
+            "bind": {
+              "text": "status_text"
+            }
+          },
+          {
+            "type": "Toggle",
+            "props": {
+              "label": "Live",
+              "checked": true,
+              "id": "live"
+            },
+            "bind": {
+              "checked": "live"
+            }
+          }
+        ]
+      },
+      {
+        "type": "Tabs",
+        "props": {
+          "titles": "Overview, Processes, Services, Settings",
+          "flex": 1,
+          "id": "tabs"
+        },
+        "bind": {
+          "current": "tab"
+        },
+        "children": [
+          {
+            "type": "VStack",
+            "props": {
+              "spacing": 14,
+              "padding": 14
+            },
+            "children": [
+              {
+                "type": "Grid",
+                "props": {
+                  "columns": 3,
+                  "spacing": 12
+                },
+                "children": [
+                  {
+                    "type": "Panel",
+                    "props": {
+                      "spacing": 6,
+                      "id": "cpu_card"
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "props": {
+                          "text": "CPU",
+                          "font_size": 12,
+                          "color": "#8B93A1"
+                        }
+                      },
+                      {
+                        "type": "Text",
+                        "props": {
+                          "text": "0 %",
+                          "font_size": 26,
+                          "weight": 4,
+                          "id": "cpu_value"
+                        },
+                        "bind": {
+                          "text": "cpu_text"
+                        }
+                      },
+                      {
+                        "type": "ProgressBar",
+                        "props": {
+                          "id": "cpu_bar"
+                        },
+                        "bind": {
+                          "value": "cpu_bar"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Panel",
+                    "props": {
+                      "spacing": 6,
+                      "id": "memory_card"
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "props": {
+                          "text": "Memory",
+                          "font_size": 12,
+                          "color": "#8B93A1"
+                        }
+                      },
+                      {
+                        "type": "Text",
+                        "props": {
+                          "text": "0 %",
+                          "font_size": 26,
+                          "weight": 4,
+                          "id": "memory_value"
+                        },
+                        "bind": {
+                          "text": "memory_text"
+                        }
+                      },
+                      {
+                        "type": "ProgressBar",
+                        "props": {
+                          "id": "memory_bar"
+                        },
+                        "bind": {
+                          "value": "memory_bar"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Panel",
+                    "props": {
+                      "spacing": 6,
+                      "id": "disk_card"
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "props": {
+                          "text": "Disk",
+                          "font_size": 12,
+                          "color": "#8B93A1"
+                        }
+                      },
+                      {
+                        "type": "Text",
+                        "props": {
+                          "text": "0 %",
+                          "font_size": 26,
+                          "weight": 4,
+                          "id": "disk_value"
+                        },
+                        "bind": {
+                          "text": "disk_text"
+                        }
+                      },
+                      {
+                        "type": "ProgressBar",
+                        "props": {
+                          "id": "disk_bar"
+                        },
+                        "bind": {
+                          "value": "disk_bar"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "HStack",
+                "props": {
+                  "align_items": 1
+                },
+                "children": [
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "CPU history",
+                      "weight": 3
+                    }
+                  },
+                  {
+                    "type": "Spacer"
+                  },
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "",
+                      "font_size": 12,
+                      "color": "#8B93A1",
+                      "id": "peak"
+                    },
+                    "bind": {
+                      "text": "peak_text"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Canvas",
+                "props": {
+                  "height": 260,
+                  "flex": 1,
+                  "id": "chart",
+                  "tooltip": "The last 90 samples"
+                },
+                "bind": {
+                  "redraw_on": "frame"
+                },
+                "on": {
+                  "draw": "draw_chart"
+                }
+              }
+            ]
+          },
+          {
+            "type": "VStack",
+            "props": {
+              "spacing": 10,
+              "padding": 14
+            },
+            "children": [
+              {
+                "type": "HStack",
+                "props": {
+                  "spacing": 10,
+                  "align_items": 1
+                },
+                "children": [
+                  {
+                    "type": "TextField",
+                    "props": {
+                      "placeholder": "Filter processes",
+                      "flex": 1,
+                      "id": "query"
+                    },
+                    "bind": {
+                      "text": "query"
+                    }
+                  },
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "",
+                      "id": "proc_count"
+                    },
+                    "bind": {
+                      "text": "proc_count"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "VStack",
+                "props": {
+                  "spacing": 0,
+                  "flex": 1,
+                  "id": "procs"
+                },
+                "children": []
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Double click a process to end it. Click a header to sort.",
+                  "font_size": 11.5,
+                  "color": "#8B93A1"
+                }
+              }
+            ]
+          },
+          {
+            "type": "VStack",
+            "props": {
+              "spacing": 10,
+              "padding": 14
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Double click a service to start or stop it.",
+                  "font_size": 11.5,
+                  "color": "#8B93A1"
+                }
+              },
+              {
+                "type": "VStack",
+                "props": {
+                  "spacing": 0,
+                  "flex": 1,
+                  "id": "services"
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "type": "VStack",
+            "props": {
+              "spacing": 14,
+              "padding": 18
+            },
+            "children": [
+              {
+                "type": "HStack",
+                "props": {
+                  "spacing": 12,
+                  "align_items": 1
+                },
+                "children": [
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "Refresh interval",
+                      "width": 220
+                    }
+                  },
+                  {
+                    "type": "NumberField",
+                    "props": {
+                      "value": 1000,
+                      "min": 200,
+                      "max": 5000,
+                      "step": 100,
+                      "suffix": " ms",
+                      "width": 140,
+                      "id": "refresh"
+                    },
+                    "bind": {
+                      "value": "refresh_ms"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "HStack",
+                "props": {
+                  "spacing": 12,
+                  "align_items": 1
+                },
+                "children": [
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "Warn when the CPU is above",
+                      "width": 220
+                    }
+                  },
+                  {
+                    "type": "NumberField",
+                    "props": {
+                      "value": 80,
+                      "min": 10,
+                      "max": 100,
+                      "step": 5,
+                      "suffix": " %",
+                      "width": 140,
+                      "id": "threshold"
+                    },
+                    "bind": {
+                      "value": "threshold"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "Toggle",
+                "props": {
+                  "label": "Show a warning when the CPU is busy",
+                  "id": "alerts"
+                },
+                "bind": {
+                  "checked": "alerts"
+                }
+              },
+              {
+                "type": "Divider"
+              },
+              {
+                "type": "HStack",
+                "props": {
+                  "spacing": 12,
+                  "align_items": 1
+                },
+                "children": [
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "Chart style",
+                      "width": 220
+                    }
+                  },
+                  {
+                    "type": "RadioGroup",
+                    "props": {
+                      "options": "Area, Line, Bars",
+                      "horizontal": true,
+                      "id": "style"
+                    },
+                    "bind": {
+                      "index": "chart_style"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "HStack",
+                "props": {
+                  "spacing": 12,
+                  "align_items": 1
+                },
+                "children": [
+                  {
+                    "type": "Text",
+                    "props": {
+                      "text": "Chart color",
+                      "width": 220
+                    }
+                  },
+                  {
+                    "type": "ColorPicker",
+                    "props": {
+                      "id": "chart_picker"
+                    },
+                    "bind": {
+                      "color": "chart_color"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

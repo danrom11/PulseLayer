@@ -40,9 +40,14 @@ a reactive model. Nothing is refreshed by hand.
 | 🎨 **Live canvas** | What you see is the real thing: forms are rendered by actual PulseUI views, not mock-ups. |
 | 🧩 **Declarative output** | Forms export to short, readable C++ that you would happily write by hand. |
 | 🗂 **Multi-form projects** | Every form has a layout, a header and a source file, plus your own sources. |
-| ✍️ **Built-in editor** | C++ highlighting, scope-aware completion, and compiler errors underlined in place. |
+| ✍️ **Built-in editor** | C++ highlighting, type-aware completion with parameter hints, and compiler errors underlined in place. |
 | 🛠 **Zero-setup toolchains** | MSVC, Clang, GCC/MinGW, CMake and Ninja are found automatically. |
 | 🌍 **Instant language switch** | The whole UI is re-translated on the fly; add a new language with a single JSON file. |
+| 🔗 **Binding suggestions** | The binding fields list the members of the form's class with their types (and `item.<field>` inside list rows). |
+| 📋 **Lists and components** | Draw a list row and bind it to a `std::vector`; reuse forms inside forms; the project's own view classes appear in the palette. |
+| 🖼 **Preview board** | The form in dark and light theme, other sizes and with pseudo-translated long texts, side by side. |
+| 🐞 **Debugger** | Breakpoints, stepping, call stack and locals through GDB (MinGW), CDB (MSVC) or LLDB (macOS). |
+| 📦 **Release** | One click: an optimized, self-contained `.exe` with the DLLs it needs, or a signed `.app` and `.dmg`. |
 
 ## Quick start
 
@@ -57,10 +62,8 @@ That's all: Pulse and PulseUI are downloaded automatically (see [Building Pulse 
 Then open one of the [samples](#samples):
 
 ```bash
-./build/PulseLayer samples/taskboard/TaskBoard.pulse
+./samples/taskboard/TaskBoard.pulse
 ```
-
-With Visual Studio the executable is in `build/Release/`, next to its `samples/` folder.
 
 ## Samples
 
@@ -74,6 +77,9 @@ and press **Run** (Ctrl+R).
 | [**Color Studio**](samples/colorstudio) | Sliders mix a color; the preview, readable text color, WCAG contrast grade, tints and shades follow. The hex field binds the other way. A palette is rendered with `ForEach`. |
 | [**Snippet Box**](samples/snippetbox) | A multi-form app (main window, Preferences, About) sharing one reactive store. Search uses `debounce`, edits are autosaved, and the theme switches live from Preferences. |
 | [**Live Dashboard**](samples/livedashboard) | Views bound straight to Pulse streams: `throttle`, `map`, `scan` for a sliding window, and `combine_latest` + `distinct_until_changed` for alerts. Includes a live area chart. |
+| [**Planner**](samples/planner) | A task planner built around a **ForEach row template** (keyed by `id`, bound to `item.title`, `item.done`...; row events call methods with the task) and a **component**: the StatsCard form with an animated progress ring. Menu bar, context menu, `#tag` suggestions, toasts with Undo, a confirmation dialog, DatePicker, Segmented, RadioGroup, Wrap; the list card and the side column glide, the progress tweens. |
+| [**Photo Board**](samples/photoboard) | **Drag and drop**: drop images from Explorer/Finder, drag cards out. A keyed `ForEach().wrap()` of cards that **fly to new places** when the sort changes and resize smoothly with the slider; the board color glides; hovering lifts a card. SVG icons, a preview sheet, rename with a prompt, remove with Undo. |
+| [**System Monitor**](samples/systemmonitor) | **Tabs** designed in the form: tweened stat cards in a Grid, a smoothly scrolling Canvas chart that cross-fades between styles and colors, settings with NumberField, RadioGroup, Toggle and ColorPicker. In code: a sortable `Table` of processes (confirm before ending one), a `TreeView` of services, CSV export, warning toasts. |
 | [`login.pform`](samples/login.pform) | A single form, as a starting point for your own. |
 
 ## Designing a form
@@ -153,21 +159,70 @@ still open; their embedded code becomes `main.cpp`.
 Switch to **Code** with Ctrl+2 and back to **Design** with Ctrl+1.
 
 The editor is PulseUI's own `CodeEditor` widget. It has line numbers, C++ highlighting, auto-indent, undo and redo,
-and errors underlined right where they happen, with the message at the end of the line.
+tabs for the open files, closing brackets and quotes, a highlight on the matching bracket, and errors underlined
+right where they happen, with the message at the end of the line.
 
-**Completion** appears as you type: after two letters, after `.`, `->`, `::` or `"`, or with **Ctrl+Space**. It knows:
+**Right-click** the code for a menu with the actions below (Go to Definition, Switch Header/Source, Rename Symbol,
+Add Definition, Find, Toggle Comment, Format File, Toggle Breakpoint) and Undo, Redo, Cut, Copy, Paste and
+Select All. The click moves the caret first, so the actions apply to the word you clicked on.
 
-- variables of every enclosing scope (locals, parameters, lambda captures, `for` variables);
-- members of your class inside its methods;
-- members after `.` and `->`, for PulseUI and Pulse types and for your own classes,
-  even through `auto* ok = window_.find<Button>(…)`;
-- the views of a designed form after `ui_.`, and their members after `ui_.submit->`;
-- scopes such as `Alignment::`, `Ui::` and `pulse::`;
-- the ids of your designed views inside `find<Button>("…")`;
-- C++ keywords.
+### Find your way around
 
-Completion is a fast, lightweight C++ reader (tokens and brace scopes), not a full compiler front end.
-It is made to be instant for everyday UI code.
+- **Go to definition**: F12 or Ctrl+click. A call jumps to the function's body, a body to its declaration,
+  a variable to where it is declared, a class name to the class. `ui_.ok` opens the form in Design mode with
+  the **ok** view selected.
+- **Hover** a name to see what it is: `pulse::property<std::string> MainWindow::name`,
+  `Window::resize(float w, float h) → void`, `Button* ok — view of the form MainWindow`.
+- **F4** (or Alt+O; ⌘⌥O on macOS) switches between `mainwindow.hpp` and `mainwindow.cpp`.
+- **Ctrl+F** finds in the file (match case, whole word, F3 / Shift+F3 for next / previous);
+  **Ctrl+H** also replaces, one at a time or all at once.
+
+### Change code safely
+
+- **Rename** with F2. A local variable is renamed in its file; a class member or a function everywhere in the
+  project, including the forms that bind to it, so `on.click: greet` follows the rename to `hello`.
+  Comments and strings are left alone.
+- **Create definition** with Alt+Enter on a declaration such as `void save(int x = 3) const;` in a header:
+  `void MainWindow::save(int x) const { }` is added to the matching `.cpp` and the caret waits in the body.
+  If it is already defined, Alt+Enter takes you there.
+- **Ctrl+/** comments or uncomments the line or the selected lines.
+- **Ctrl+Shift+F** formats the file with clang-format. It is found in PATH, LLVM, Visual Studio
+  ("C++ Clang tools"), Qt Creator or Homebrew. A `.clang-format` file in the project is used when present;
+  otherwise a style that matches the templates (4 spaces, 110 columns).
+- **Ctrl+S** also checks the code for errors, without building: after the first build, Pulse Layer reruns the
+  compiler with `-fsyntax-only` (`/Zs` for MSVC) using the exact flags of the build, and the problems appear in
+  **Issues** and as squiggles a second or two later.
+
+**Completion** appears as you type: after two letters, after `.`, `->`, `::` or `"`, or with **Ctrl+Space**.
+It follows the types of whole expressions, so it keeps up with real code:
+
+- variables of every enclosing scope (locals, parameters, lambda parameters, `for` variables);
+- members of your class anywhere in its methods, also those declared further down, and inside constructors
+  with member initializers;
+- members after `.` and `->` for PulseUI, Pulse and standard types and for your own classes, through chains:
+  `ui_.ok->clicked.connect`, `name.get().size()`, `window_.root()->children()`, `th().accent.with_alpha(…)`,
+  `tasks[0].title`, `Button("…").primary().flex()`;
+- `auto` variables (`auto s = name.get();`, `auto* b = window_.find<Button>("ok");`) and range-`for` elements
+  (`for (auto& t : tasks)` → `Task`);
+- members inherited from base classes, including PulseUI ones (`class Gauge : public ViewT<Gauge>`);
+- scopes: `Alignment::`, `Ui::MainWindow::`, `pulse::`, your enums (`Mode::Edit`) and namespaces;
+- the ids of your designed views inside `find<Button>("…")` and `get<Button>("…")`;
+- Pulse operators after `stream | `, `#include` paths, and C++ keywords.
+
+Smart touches:
+
+- Choosing a function inserts the parentheses: `show()` directly, `resize(|)` with the caret inside.
+- After `void MainWindow::` (outside a function) it offers the declared methods with their parameters,
+  ready for a definition.
+- **Parameter hints**: after `(` and `,` a hint shows the signature with the current parameter in bold,
+  e.g. `resize(float w, **float h**)`. Escape hides it.
+- Snippets: `if`, `for`, `foreach`, `while`, `switch`, `lambda`, and in view code `VStack`, `HStack`,
+  `Panel`, `Button`, `Text`, with the caret where you continue typing.
+- Abbreviations work: `sms` finds `set_min_size`, `size` finds `set_min_size` too.
+- Enter between `{}` opens an indented line with the closing brace below it.
+
+Completion is a fast, lightweight C++ reader (tokens, brace scopes and a small type evaluator), not a full
+compiler front end. It is made to be instant for everyday UI code.
 
 ## Build and run
 
@@ -176,7 +231,42 @@ It is made to be instant for everyday UI code.
 | **Build** (Ctrl+B) | Generates a CMake project in `.pulselayer-build/` inside the project folder and compiles it. The first build compiles PulseUI once (about 10–20 s); later builds are incremental and take seconds. |
 | **Run** (Ctrl+R) | Builds if needed and starts the program. **Stop** ends it, together with any child processes. |
 | **Issues** | MSVC, GCC, Clang and linker errors. Click one to jump to its line. |
-| **Build output** | The complete log. |
+| **Application output** | What the running program writes to `std::cout`, `std::cerr` and `printf`, line by line as it is written, also under the debugger. Each run starts with a clean pane. |
+| **Build output** | The complete log of CMake, the compiler and the debugger. |
+
+Output appears at once, without `std::endl` or `fflush`: a Debug build includes a small generated
+`pulselayer_console.cpp` that turns off stdout buffering when Pulse Layer starts the program (it does nothing
+otherwise, and Release builds leave it out). Right-click a pane to copy from it or clear it.
+
+**Debug / Release** — like in Qt Creator, the Code toolbar has a configuration selector, and **Build** (Ctrl+B)
+and **Run** (F5, Ctrl+R) follow it:
+
+- **Debug:** Run builds and starts the program under the debugger. Click the left margin of the editor (or press F9)
+  to set breakpoints; when the program stops, the line is highlighted, Run becomes **Continue**, step buttons appear
+  next to it (step over F10, step into F11, step out Shift+F11), and the **Debug** tab shows the call stack (click a
+  frame to go there) and the local variables. **Stop** (Shift+F5) ends the session. The debugger fits the kit: GDB
+  for MinGW/GCC, CDB (from the Windows SDK "Debugging Tools") for MSVC, `lldb-dap` on macOS; without one the program
+  simply runs. Ctrl+Shift+R runs a Debug build without the debugger.
+- **Release:** Build compiles the project optimized in `.pulselayer-build/build-release/` and packages it into
+  `release/` next to the project file; Run does the same and starts the packaged program.
+  - Windows: `<Project>.exe` with the C/C++ runtime linked in (MSVC `/MT`, MinGW `-static`), plus any other DLL it
+    imports that Windows does not have (found by reading its import table).
+  - macOS: `<Project>.app`, signed with the identity from ⚙ Settings → Kits (ad hoc when empty), and a `.dmg`.
+    With Homebrew LLVM, its `libc++` is linked (the system one lacks symbols that clang 18+ headers use) and copied
+    into `Contents/Frameworks`.
+
+**Lists in forms.** Add a **ForEach** from the palette: it comes with a row (a checkbox and a text) shown
+with dimmed copies below. Edit the row like any other views, bind **items** to a `pulse::property<std::vector<T>>`
+member and bind the row's views to `item.<field>`; events of the row call your methods with the item.
+**Tabs**, **Segmented**, **Canvas** (bind its `draw` event to `void draw(pulseui::Painter&, const pulseui::Rect&)`)
+and the newer widgets are in the palette too.
+
+**Components.** The palette's **Project** section lists the other forms (insert one to reuse it - it is shown
+live on the canvas) and the view classes declared in the project's headers (`class Rating : public
+pulseui::ViewT<Rating>`), which appear as placeholders with their constructor arguments and modifiers.
+
+**Preview board** (Design mode toolbar) renders the form in several conditions side by side and keeps them
+up to date while you edit.
 
 **Kits** (⚙ Settings → Kits) are discovered in the background:
 
@@ -216,11 +306,19 @@ To force a language for one session, run `PulseLayer --lang de`.
 | Ctrl+C · Ctrl+V · Ctrl+D | Copy · Paste · Duplicate |
 | Delete · Backspace | Delete the selection |
 | Esc | Select the parent |
-| F5 | Preview |
+| F5 | Preview (Design) · Run / Continue (Code) |
+| F9 · F10 · F11 · Shift+F11 · Shift+F5 | Breakpoint · Step over · Step into · Step out · Stop debugging |
 | Ctrl+E | Export the form layout as C++ |
 | Ctrl+1 · Ctrl+2 | Design · Code |
-| Ctrl+B · Ctrl+R | Build · Build and run |
+| Ctrl+B · Ctrl+R (F5) · Ctrl+Shift+R | Build · Run (in the chosen configuration) · Run without the debugger |
 | Ctrl+Space | Code completion |
+| F12 · Ctrl+click | Go to definition |
+| F2 | Rename |
+| Alt+Enter | Create the definition of a declaration |
+| F4 · Alt+O | Header ↔ source |
+| Ctrl+F · Ctrl+H · F3 | Find · Replace · Next match |
+| Ctrl+/ | Comment lines |
+| Ctrl+Shift+F | Format with clang-format |
 | F1 | About |
 
 On macOS, `Ctrl` means `⌘ Cmd`.
@@ -247,7 +345,7 @@ Pulse Layer's own builder also uses this PulseUI copy to build your programs.
 |---|---|---|
 | `PULSELAYER_FETCH_DEPS` | `ON`, or `OFF` when `../Pulse` and `../PulseUI` exist | Download dependencies instead of using sibling checkouts |
 | `PULSELAYER_PULSE_REF` | `0.2.1` | Tag, branch or commit of Pulse to download |
-| `PULSELAYER_PULSEUI_REF` | `0.3.0` | Tag, branch or commit of PulseUI to download |
+| `PULSELAYER_PULSEUI_REF` | `0.4.0` | Tag, branch or commit of PulseUI to download |
 | `PULSELAYER_DEPS_DIR` | `external/` | Where downloads are unpacked (one subfolder per version pair) |
 
 Working on all three projects at once? Put them side by side (`Pulse/`, `PulseUI/`, `PulseLayer/`). Your local

@@ -96,6 +96,11 @@ public:
       if (!CreatePipe(&read_end, &write_end, &sa, 0)) return false;
       SetHandleInformation(read_end, HANDLE_FLAG_INHERIT, 0);
     }
+    HANDLE in_read = nullptr;
+    if (opt.input) {
+      if (!CreatePipe(&in_read, &in_write_, &sa, 0)) return false;
+      SetHandleInformation(in_write_, HANDLE_FLAG_INHERIT, 0);
+    }
 
     // environment block
     std::wstring env_block;
@@ -123,7 +128,7 @@ public:
       si.dwFlags = STARTF_USESTDHANDLES;
       si.hStdOutput = write_end;
       si.hStdError = write_end;
-      si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+      si.hStdInput = opt.input ? in_read : GetStdHandle(STD_INPUT_HANDLE);
     }
     PROCESS_INFORMATION pi{};
     std::wstring cmd = widen(opt.command);
@@ -132,10 +137,12 @@ public:
     const BOOL ok = CreateProcessW(nullptr, cmd.data(), nullptr, nullptr, opt.capture ? TRUE : FALSE, flags,
                                    env_block.data(), cwd.empty() ? nullptr : cwd.c_str(), &si, &pi);
     if (write_end) CloseHandle(write_end);
+    if (in_read) CloseHandle(in_read);
     if (!ok) {
       if (read_end) CloseHandle(read_end);
       return false;
     }
+    pid_ = static_cast<int>(pi.dwProcessId);
     // A job object lets kill() take down the whole tree (cmake -> ninja -> cl ...).
     job_ = CreateJobObjectW(nullptr, nullptr);
     if (job_) {
@@ -150,7 +157,8 @@ public:
     running_ = true;
 
     auto self = shared_from_this();
-    reader_ = std::thread([self, read_end] {
+    const bool raw = opt.raw;
+    reader_ = std::thread([self, read_end, raw] {
       LineSplitter split;
       auto forward = [&](const std::string& l) {
         if (self->on_line_) self->on_line_(to_utf8(l));
@@ -158,7 +166,13 @@ public:
       if (read_end) {
         char buf[4096];
         DWORD n = 0;
-        while (ReadFile(read_end, buf, sizeof buf, &n, nullptr) && n > 0) split.feed(buf, n, forward);
+        while (ReadFile(read_end, buf, sizeof buf, &n, nullptr) && n > 0) {
+          if (raw) {
+            if (self->on_line_) self->on_line_(std::string(buf, n));
+          } else {
+            split.feed(buf, n, forward);
+          }
+        }
         split.flush(forward);
         CloseHandle(read_end);
       }
@@ -180,10 +194,25 @@ public:
     else if (process_) TerminateProcess(process_, 1);
   }
   bool running() const override { return running_; }
+  bool write(const std::string& data) override {
+    std::lock_guard<std::mutex> lock(write_mx_);
+    if (!in_write_) return false;
+    DWORD n = 0;
+    return WriteFile(in_write_, data.data(), static_cast<DWORD>(data.size()), &n, nullptr) && n == data.size();
+  }
+  void close_input() override {
+    std::lock_guard<std::mutex> lock(write_mx_);
+    if (in_write_) CloseHandle(in_write_);
+    in_write_ = nullptr;
+  }
+  int pid() const override { return pid_; }
 
 private:
   LineFn on_line_;
   ExitFn on_exit_;
+  HANDLE in_write_ = nullptr;
+  std::mutex write_mx_;
+  int pid_ = 0;
   HANDLE process_ = nullptr;
   HANDLE job_ = nullptr;
   std::thread reader_;
@@ -236,6 +265,8 @@ public:
     on_exit_ = std::move(on_exit);
     int fds[2] = {-1, -1};
     if (opt.capture && pipe(fds) != 0) return false;
+    int in_fds[2] = {-1, -1};
+    if (opt.input && pipe(in_fds) != 0) return false;
     auto env = opt.replace_env ? opt.env : current_environment();
     if (!opt.replace_env)
       for (auto& [k, v] : opt.env) env[k] = v;
@@ -252,6 +283,11 @@ public:
         close(fds[0]);
         close(fds[1]);
       }
+      if (opt.input) {
+        dup2(in_fds[0], STDIN_FILENO);
+        close(in_fds[0]);
+        close(in_fds[1]);
+      }
       if (!opt.cwd.empty() && chdir(opt.cwd.c_str()) != 0) _exit(127);
       std::vector<char*> envp;
       for (auto& s : env_strings) envp.push_back(s.data());
@@ -261,15 +297,26 @@ public:
     }
     setpgid(pid_, pid_);
     if (opt.capture) close(fds[1]);
+    if (opt.input) {
+      close(in_fds[0]);
+      in_fd_ = in_fds[1];
+    }
     running_ = true;
     auto self = shared_from_this();
     const int rd = opt.capture ? fds[0] : -1;
-    reader_ = std::thread([self, rd] {
+    const bool raw = opt.raw;
+    reader_ = std::thread([self, rd, raw] {
       LineSplitter split;
       if (rd >= 0) {
         char buf[4096];
         ssize_t n;
-        while ((n = read(rd, buf, sizeof buf)) > 0) split.feed(buf, static_cast<std::size_t>(n), self->on_line_);
+        while ((n = read(rd, buf, sizeof buf)) > 0) {
+          if (raw) {
+            if (self->on_line_) self->on_line_(std::string(buf, static_cast<std::size_t>(n)));
+          } else {
+            split.feed(buf, static_cast<std::size_t>(n), self->on_line_);
+          }
+        }
         split.flush(self->on_line_);
         close(rd);
       }
@@ -288,10 +335,23 @@ public:
     ::kill(-pid_, SIGTERM);
   }
   bool running() const override { return running_; }
+  bool write(const std::string& data) override {
+    std::lock_guard<std::mutex> lock(write_mx_);
+    if (in_fd_ < 0) return false;
+    return ::write(in_fd_, data.data(), data.size()) == static_cast<ssize_t>(data.size());
+  }
+  void close_input() override {
+    std::lock_guard<std::mutex> lock(write_mx_);
+    if (in_fd_ >= 0) close(in_fd_);
+    in_fd_ = -1;
+  }
+  int pid() const override { return static_cast<int>(pid_); }
 
 private:
   LineFn on_line_;
   ExitFn on_exit_;
+  int in_fd_ = -1;
+  std::mutex write_mx_;
   pid_t pid_ = -1;
   std::thread reader_;
   std::atomic<bool> running_{false}, killed_{false};
@@ -328,7 +388,7 @@ std::string Process::quote(const std::string& arg) {
 #endif
 
 int Process::run(const std::string& command, std::string& output, int timeout_ms,
-                 const std::map<std::string, std::string>& env, bool replace_env) {
+                 const std::map<std::string, std::string>& env, bool replace_env, const std::string& cwd) {
   struct Shared {
     std::mutex m;
     std::condition_variable cv;
@@ -341,6 +401,7 @@ int Process::run(const std::string& command, std::string& output, int timeout_ms
   opt.command = command;
   opt.env = env;
   opt.replace_env = replace_env;
+  opt.cwd = cwd;
   auto p = start(
       opt,
       [sh](const std::string& l) {

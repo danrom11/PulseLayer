@@ -149,12 +149,26 @@ void Document::set_prop(View* v, const meta::Property* p, const meta::Value& val
   changed();
 }
 
-View* Document::insert(const std::string& type, View* container, int index, std::optional<Point> pos) {
+View* Document::insert(const std::string& type_spec, View* container, int index, std::optional<Point> pos) {
   if (!container || !is_container(container)) return nullptr;
+  // project parts come as "Component:<Form>" and "Custom:<Class>|<header>"
+  std::string type = type_spec, arg;
+  if (const auto colon = type_spec.find(':'); colon != std::string::npos) {
+    type = type_spec.substr(0, colon);
+    arg = type_spec.substr(colon + 1);
+  }
   auto v = meta::create(type);
   if (!v) return nullptr;
   begin_edit();
-  v->set_id(unique_id(type));
+  if (auto* c = dynamic_cast<FormComponent*>(v.get()); c && !arg.empty()) c->set_form(arg);
+  if (auto* c = dynamic_cast<CustomView*>(v.get()); c && !arg.empty()) {
+    const auto bar = arg.find('|');
+    c->class_name = arg.substr(0, bar);
+    if (bar != std::string::npos) c->header = arg.substr(bar + 1);
+  }
+  v->set_id(unique_id(arg.empty() ? type : arg.substr(0, arg.find('|'))));
+  // default content of new lists / tabs / grids (a row template, two pages, ...)
+  if (const meta::TypeInfo* t = meta::find(type); t && t->init_new) t->init_new(*v);
   if (is_layer(container)) {
     v->style().positioned = true;
     v->style().position = pos.value_or(Point{16.f + 12.f * container->children().size(), 16.f + 12.f * container->children().size()});

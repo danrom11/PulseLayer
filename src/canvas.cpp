@@ -53,6 +53,7 @@ Rect DesignCanvas::rect_of(const View* v) const {
 
 View* DesignCanvas::view_at_in(View* v, Point p) const {
   if (!v->is_visible() || !rect_of(v).contains(p)) return nullptr;
+  if (!Document::is_container(v)) return v; // the inner parts of a view (a NumberField's text field) are not separate
   const auto& ch = v->children();
   for (auto it = ch.rbegin(); it != ch.rend(); ++it)
     if (View* h = view_at_in(it->get(), p)) return h;

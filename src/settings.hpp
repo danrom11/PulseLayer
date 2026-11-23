@@ -13,6 +13,8 @@ struct Settings {
   bool dark = true;
   std::string kit;         // id of the selected kit ("" = first detected)
   std::string pulseui_dir; // PulseUI sources used to build programs ("" = auto)
+  std::string sign_identity; // macOS: codesign identity for releases ("" = ad hoc)
+  int build_config = 0;      // 0 Debug, 1 Release
 
   static std::filesystem::path file();
   static Settings load();

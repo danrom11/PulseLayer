@@ -33,6 +33,8 @@ Settings Settings::load() {
     s.dark = (*j)["dark"].as_bool(s.dark);
     s.kit = (*j)["kit"].as_string();
     s.pulseui_dir = (*j)["pulseui_dir"].as_string();
+    s.sign_identity = (*j)["sign_identity"].as_string();
+    s.build_config = static_cast<int>((*j)["build_config"].as_number(0));
   }
   return s;
 }
@@ -45,6 +47,8 @@ bool Settings::save() const {
   j["dark"] = dark;
   j["kit"] = kit;
   j["pulseui_dir"] = pulseui_dir;
+  j["sign_identity"] = sign_identity;
+  j["build_config"] = build_config;
   std::ofstream out(file(), std::ios::binary);
   out << j.dump(2) << "\n";
   return static_cast<bool>(out);

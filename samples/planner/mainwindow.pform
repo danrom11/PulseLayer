@@ -1,0 +1,330 @@
+{
+  "format": "pulseui-form",
+  "version": 1,
+  "title": "Planner",
+  "width": 820,
+  "height": 680,
+  "root": {
+    "type": "VStack",
+    "props": {
+      "spacing": 14,
+      "padding": 20
+    },
+    "children": [
+      {
+        "type": "HStack",
+        "props": {
+          "align_items": 1
+        },
+        "children": [
+          {
+            "type": "Text",
+            "props": {
+              "text": "Planner",
+              "font_size": 24,
+              "weight": 4,
+              "id": "heading"
+            }
+          },
+          {
+            "type": "Spacer"
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "",
+              "id": "today"
+            },
+            "bind": {
+              "text": "today_text"
+            }
+          }
+        ]
+      },
+      {
+        "type": "Panel",
+        "props": {
+          "spacing": 10,
+          "id": "composer"
+        },
+        "children": [
+          {
+            "type": "HStack",
+            "props": {
+              "spacing": 10,
+              "align_items": 1
+            },
+            "children": [
+              {
+                "type": "TextField",
+                "props": {
+                  "placeholder": "What needs doing?  (try #work, #home...)",
+                  "flex": 1,
+                  "id": "draft"
+                },
+                "bind": {
+                  "text": "draft"
+                },
+                "on": {
+                  "submit": "add_task"
+                }
+              },
+              {
+                "type": "DatePicker",
+                "props": {
+                  "id": "due",
+                  "tooltip": "Due date"
+                },
+                "bind": {
+                  "date": "due"
+                }
+              },
+              {
+                "type": "Segmented",
+                "props": {
+                  "options": "Low, Normal, High",
+                  "index": 1,
+                  "id": "prio",
+                  "tooltip": "Priority"
+                },
+                "bind": {
+                  "index": "priority"
+                }
+              },
+              {
+                "type": "Button",
+                "props": {
+                  "label": "Add",
+                  "kind": 1,
+                  "id": "add",
+                  "width": 90
+                },
+                "bind": {
+                  "enabled": "can_add"
+                },
+                "on": {
+                  "click": "add_task"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "HStack",
+        "props": {
+          "spacing": 16,
+          "align_items": 3,
+          "flex": 1
+        },
+        "children": [
+          {
+            "type": "VStack",
+            "props": {
+              "spacing": 8,
+              "flex": 1
+            },
+            "children": [
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Tasks",
+                  "weight": 3,
+                  "id": "tasks_title"
+                },
+                "bind": {
+                  "text": "list_title"
+                }
+              },
+              {
+                "type": "Scroll",
+                "props": {
+                  "flex": 1,
+                  "id": "scroll"
+                },
+                "children": [
+                  {
+                    "type": "VStack",
+                    "props": {
+                      "spacing": 0,
+                      "id": "list_card"
+                    },
+                    "children": [
+                      {
+                        "type": "ForEach",
+                        "props": {
+                          "key": "id",
+                          "spacing": 6,
+                          "id": "rows"
+                        },
+                        "bind": {
+                          "items": "visible"
+                        },
+                        "children": [
+                          {
+                            "type": "HStack",
+                            "props": {
+                              "spacing": 10,
+                              "align_items": 1,
+                              "padding": 10,
+                              "radius": 10,
+                              "background": "#7F7F7F14"
+                            },
+                            "children": [
+                              {
+                                "type": "Checkbox",
+                                "props": {
+                                  "label": ""
+                                },
+                                "bind": {
+                                  "checked": "item.done"
+                                },
+                                "on": {
+                                  "change": "toggle"
+                                }
+                              },
+                              {
+                                "type": "Text",
+                                "props": {
+                                  "text": "●",
+                                  "font_size": 14
+                                },
+                                "bind": {
+                                  "color": "item.dot"
+                                }
+                              },
+                              {
+                                "type": "VStack",
+                                "props": {
+                                  "spacing": 2,
+                                  "flex": 1
+                                },
+                                "children": [
+                                  {
+                                    "type": "Text",
+                                    "props": {
+                                      "text": "Task",
+                                      "font_size": 14
+                                    },
+                                    "bind": {
+                                      "text": "item.title"
+                                    }
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "props": {
+                                      "text": "Due",
+                                      "font_size": 11.5,
+                                      "color": "#8B93A1"
+                                    },
+                                    "bind": {
+                                      "text": "item.subtitle"
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Button",
+                                "props": {
+                                  "label": "✕",
+                                  "kind": 2,
+                                  "tooltip": "Delete"
+                                },
+                                "on": {
+                                  "click": "remove"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "VStack",
+            "props": {
+              "spacing": 12,
+              "width": 240,
+              "id": "side"
+            },
+            "children": [
+              {
+                "type": "Component",
+                "props": {
+                  "form": "StatsCard",
+                  "id": "stats_card"
+                },
+                "bind": {
+                  "model": "stats"
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Show",
+                  "weight": 3
+                }
+              },
+              {
+                "type": "RadioGroup",
+                "props": {
+                  "options": "All, Open, Done",
+                  "id": "filter"
+                },
+                "bind": {
+                  "index": "filter"
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "text": "Tags",
+                  "weight": 3
+                }
+              },
+              {
+                "type": "Wrap",
+                "props": {
+                  "id": "tags"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "HStack",
+        "props": {
+          "spacing": 12,
+          "align_items": 1
+        },
+        "children": [
+          {
+            "type": "ProgressBar",
+            "props": {
+              "flex": 1,
+              "id": "progress"
+            },
+            "bind": {
+              "value": "progress"
+            }
+          },
+          {
+            "type": "Text",
+            "props": {
+              "text": "",
+              "id": "summary"
+            },
+            "bind": {
+              "text": "summary"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

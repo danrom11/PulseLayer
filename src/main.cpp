@@ -41,6 +41,8 @@ int main(int argc, char** argv) {
   d.dark = settings.dark;
   d.preferred_kit = settings.kit;
   d.pulseui_dir = settings.pulseui_dir;
+  d.sign_identity = settings.sign_identity;
+  d.build_config = settings.build_config == 1 ? 1 : 0;
   theme() = settings.dark ? Theme::dark() : Theme::light();
 
   // Selector index <-> language code; both persist to the settings file.
@@ -74,12 +76,29 @@ int main(int argc, char** argv) {
     settings.pulseui_dir = dir;
     if (!selftest) settings.save();
   });
+  d.build_config.changed.connect([&](int c) {
+    settings.build_config = c;
+    if (!selftest) settings.save();
+  });
+  d.sign_identity.changed.connect([&](const std::string& id) {
+    settings.sign_identity = id;
+    if (!selftest) settings.save();
+  });
   // builder -> UI
   d.builder.output.connect([&](const std::string& line) {
     if (d.output) d.output->append(line + "\n");
   });
-  d.builder.note.connect([&](const std::string& key, const std::string& arg) { d.doc.status = i18n::Message{key, arg}; });
+  d.builder.app_output.connect([&](const std::string& line) {
+    if (d.app_output) d.app_output->append(line + "\n");
+  });
+  d.builder.note.connect([&](const std::string& key, const std::string& arg) {
+    d.doc.status = i18n::Message{key, arg};
+    if (key == "run.started") d.show_app_output(i18n::text("run.starting", d.builder.executable()));
+    else if (key == "run.exit" && d.app_output) d.app_output->append(i18n::text("run.exit", arg) + "\n");
+  });
   d.wire_project();
+  d.wire_editor_tools();
+  d.wire_debugger();
   d.detect_kits(); // in the background, like Qt Creator
 
   // The window title is derived state: form name + unsaved marker, in the current language.
@@ -132,15 +151,49 @@ int main(int argc, char** argv) {
       .shortcut("Delete", [&] { if (d.mode.get() == 0) d.cmd_delete(); })
       .shortcut("Backspace", [&] { if (d.mode.get() == 0) d.cmd_delete(); })
       .shortcut("Ctrl+E", [&] { if (d.mode.get() == 0) d.cmd_export(); })
-      .shortcut("F5", [&] { d.mode.get() == 0 ? d.cmd_preview() : d.cmd_run(); })
+      .shortcut("F5", [&] {
+        if (d.mode.get() == 0) d.cmd_preview();
+        else d.cmd_run(); // Code mode: Run in the chosen configuration (Continue when paused)
+      })
+      .shortcut("Shift+F5", [&] { d.cmd_debug_stop(); })
+      .shortcut("F9", [&] { if (d.mode.get() == 1) d.cmd_toggle_breakpoint(); })
+      .shortcut("F10", [&] { d.cmd_step_over(); })
+      .shortcut("F11", [&] { d.cmd_step_into(); })
+      .shortcut("Shift+F11", [&] { d.cmd_step_out(); })
       .shortcut("F1", [&] { d.cmd_settings(2); })
-      .shortcut("Ctrl+B", [&] { d.cmd_build(false); })
+      .shortcut("Ctrl+B", [&] { d.cmd_build_selected(); })
       .shortcut("Ctrl+R", [&] { d.cmd_run(); })
+      .shortcut("Ctrl+Shift+R", [&] { d.cmd_run_plain(); })
       .shortcut("Ctrl+1", [&] { d.mode = 0; })
       .shortcut("Ctrl+2", [&] { d.mode = 1; })
       .shortcut("Escape", [&] {
+        if (d.mode.get() == 1) {
+          if (d.find_open.get()) d.find_close();
+          return;
+        }
         if (View* s = d.doc.selection.get(); s && s->parent() && s != d.doc.root()) d.doc.selection = s->parent();
-      });
+      })
+      // code editor tools
+      .shortcut("Ctrl+F", [&] { d.cmd_find(false); })
+      .shortcut("Ctrl+H", [&] { d.cmd_find(true); })
+      .shortcut("F3", [&] { d.find_step(false); })
+      .shortcut("Shift+F3", [&] { d.find_step(true); })
+      .shortcut("F12", [&] { d.cmd_go_to_definition(); })
+      .shortcut("F2", [&] { d.cmd_rename(); })
+      .shortcut("Alt+Enter", [&] { d.cmd_create_definition(); })
+      .shortcut("F4", [&] { d.cmd_switch_header(); })
+#ifdef __APPLE__
+      .shortcut("Ctrl+Alt+O", [&] { d.cmd_switch_header(); }) // Option+O types a character on macOS
+#else
+      .shortcut("Alt+O", [&] { d.cmd_switch_header(); })
+#endif
+      .shortcut("Ctrl+Shift+F", [&] { d.cmd_format(); });
+
+  // Ctrl+click in the editor: go to the definition (after the click is handled)
+  if (d.editor)
+    d.editor->definition_requested.connect([&d](std::size_t line, std::size_t col) {
+      App::post([&d, line, col] { d.go_to_definition(line, col); });
+    });
 
   // Ask before losing unsaved work: closing with changes saves them first.
   win.on_close = [&] {
